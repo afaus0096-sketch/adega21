@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,8 +43,8 @@ function Vendas() {
               </thead>
               <tbody>
                 {filtered.map((v: any) => (
-                  <>
-                    <tr key={v.id} className="border-t border-border hover:bg-muted/20 cursor-pointer" onClick={() => setAberta(aberta === v.id ? null : v.id)}>
+                  <Fragment key={v.id}>
+                    <tr className="border-t border-border hover:bg-muted/20 cursor-pointer" onClick={() => setAberta(aberta === v.id ? null : v.id)}>
                       <td className="px-4 py-3 font-mono">#{v.numero}</td>
                       <td className="px-4 py-3 text-muted-foreground">{dtBR(v.created_at)}</td>
                       <td className="px-4 py-3">{v.profiles?.nome ?? "—"}</td>
@@ -52,7 +52,7 @@ function Vendas() {
                       <td className="px-4 py-3 text-right font-bold text-accent">{brl(Number(v.total))}</td>
                     </tr>
                     {aberta === v.id && (
-                      <tr key={v.id+"-d"} className="bg-muted/10">
+                      <tr className="bg-muted/10">
                         <td colSpan={5} className="px-6 py-3">
                           <table className="w-full text-xs">
                             <thead className="text-muted-foreground"><tr><th className="text-left py-1">Produto</th><th className="text-right py-1">Qtd</th><th className="text-right py-1">Unit.</th><th className="text-right py-1">Subtotal</th></tr></thead>
@@ -73,7 +73,7 @@ function Vendas() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
                 {filtered.length === 0 && <tr><td colSpan={5} className="text-center py-10 text-muted-foreground">Nenhuma venda.</td></tr>}
               </tbody>
