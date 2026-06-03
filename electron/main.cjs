@@ -2,7 +2,7 @@ const { app, BrowserWindow, Menu, shell } = require('electron');
 const path = require('path');
 
 // URL do app publicado no Lovable. Substitua pela URL real após publicar.
-const APP_URL = process.env.ADEGA_URL || 'https://REPLACE-ME.lovable.app';
+const APP_URL = process.env.ADEGA_URL || 'https://adega-point-pro.lovable.app';
 
 function createWindow() {
   const win = new BrowserWindow({
