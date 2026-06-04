@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Wine } from "lucide-react";
+import { Wine, Shield, User } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,28 +11,55 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
+const FUNC_DOMAIN = "funcionarios.adega.local";
+
 function LoginPage() {
   const { user, signIn, signUp, loading } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState("login");
+  const [tab, setTab] = useState("adm");
+
+  // ADM
+  const [admMode, setAdmMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
+
+  // Funcionário
+  const [username, setUsername] = useState("");
+  const [pin, setPin] = useState("");
+
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/dashboard", replace: true });
   }, [user, loading, navigate]);
 
-  const submit = async (e: React.FormEvent) => {
+  const submitAdm = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    const r = tab === "login"
+    const r = admMode === "login"
       ? await signIn(email, password)
       : await signUp(email, password, nome);
     setBusy(false);
     if (r.error) toast.error(r.error);
-    else if (tab === "signup") toast.success("Conta criada! Verifique seu email para confirmar.");
+    else if (admMode === "signup") toast.success("Conta criada! Verifique seu email.");
+  };
+
+  const submitFunc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^[a-z0-9_.-]+$/.test(username)) {
+      toast.error("Usuário inválido."); return;
+    }
+    if (!/^\d{6}$/.test(pin)) {
+      toast.error("PIN deve ter 6 dígitos."); return;
+    }
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: `${username}@${FUNC_DOMAIN}`,
+      password: pin,
+    });
+    setBusy(false);
+    if (error) toast.error("Usuário ou PIN inválido.");
   };
 
   return (
@@ -65,34 +93,78 @@ function LoginPage() {
 
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Criar conta</TabsTrigger>
+              <TabsTrigger value="adm" className="gap-2">
+                <Shield className="w-4 h-4" /> Master ADM
+              </TabsTrigger>
+              <TabsTrigger value="func" className="gap-2">
+                <User className="w-4 h-4" /> Funcionário
+              </TabsTrigger>
             </TabsList>
 
-            <form onSubmit={submit} className="space-y-4 mt-6">
-              <TabsContent value="signup" className="space-y-4 mt-0">
+            <TabsContent value="adm" className="mt-6">
+              <form onSubmit={submitAdm} className="space-y-4">
+                {admMode === "signup" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="nome">Nome</Label>
+                    <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required placeholder="Seu nome" />
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <Label htmlFor="nome">Nome</Label>
-                  <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required={tab === "signup"} placeholder="Seu nome" />
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="voce@adega.com" />
                 </div>
-              </TabsContent>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="voce@adega.com" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} placeholder="••••••••" />
-              </div>
-              <Button type="submit" className="w-full" size="lg" disabled={busy}>
-                {busy ? "Aguarde…" : tab === "login" ? "Entrar" : "Criar conta"}
-              </Button>
-              {tab === "signup" && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} placeholder="••••••••" />
+                </div>
+                <Button type="submit" className="w-full" size="lg" disabled={busy}>
+                  {busy ? "Aguarde…" : admMode === "login" ? "Entrar como ADM" : "Criar conta ADM"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setAdmMode(admMode === "login" ? "signup" : "login")}
+                  className="text-sm text-muted-foreground hover:text-foreground block mx-auto"
+                >
+                  {admMode === "login" ? "Criar conta de administrador" : "Já tenho conta — entrar"}
+                </button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="func" className="mt-6">
+              <form onSubmit={submitFunc} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Usuário</Label>
+                  <Input
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ""))}
+                    required
+                    placeholder="joao"
+                    autoComplete="username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pin">PIN (6 dígitos)</Label>
+                  <Input
+                    id="pin"
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    required
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="••••••"
+                    autoComplete="current-password"
+                    className="text-center text-2xl tracking-[0.5em] font-mono"
+                  />
+                </div>
+                <Button type="submit" className="w-full" size="lg" disabled={busy}>
+                  {busy ? "Aguarde…" : "Entrar como funcionário"}
+                </Button>
                 <p className="text-xs text-muted-foreground text-center">
-                  O primeiro usuário cadastrado vira <b>administrador</b>. Os demais ficam como <b>operador de caixa</b>.
+                  Acessos criados pelo administrador. Esqueceu o PIN? Solicite reset ao ADM.
                 </p>
-              )}
-            </form>
+              </form>
+            </TabsContent>
           </Tabs>
 
           <Link to="/" className="block text-center text-sm text-muted-foreground hover:text-foreground">
