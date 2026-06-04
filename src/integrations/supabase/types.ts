@@ -106,6 +106,36 @@ export type Database = {
         }
         Relationships: []
       }
+      funcionarios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id: string
+          nome: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       itens_venda: {
         Row: {
           id: string
