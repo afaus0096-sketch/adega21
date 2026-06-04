@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
+import { Route as AuthenticatedFuncionariosAdminRouteImport } from './routes/_authenticated/funcionarios-admin'
 import { Route as AuthenticatedFornecedoresRouteImport } from './routes/_authenticated/fornecedores'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedFechamentoRouteImport } from './routes/_authenticated/fechamento'
@@ -50,6 +51,12 @@ const AuthenticatedPdvRoute = AuthenticatedPdvRouteImport.update({
   path: '/pdv',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFuncionariosAdminRoute =
+  AuthenticatedFuncionariosAdminRouteImport.update({
+    id: '/funcionarios-admin',
+    path: '/funcionarios-admin',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFornecedoresRoute =
   AuthenticatedFornecedoresRouteImport.update({
     id: '/fornecedores',
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/fechamento': typeof AuthenticatedFechamentoRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/funcionarios-admin': typeof AuthenticatedFuncionariosAdminRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/vendas': typeof AuthenticatedVendasRoute
@@ -97,6 +105,7 @@ export interface FileRoutesByTo {
   '/fechamento': typeof AuthenticatedFechamentoRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/funcionarios-admin': typeof AuthenticatedFuncionariosAdminRoute
   '/pdv': typeof AuthenticatedPdvRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/vendas': typeof AuthenticatedVendasRoute
@@ -111,6 +120,7 @@ export interface FileRoutesById {
   '/_authenticated/fechamento': typeof AuthenticatedFechamentoRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/fornecedores': typeof AuthenticatedFornecedoresRoute
+  '/_authenticated/funcionarios-admin': typeof AuthenticatedFuncionariosAdminRoute
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/fechamento'
     | '/financeiro'
     | '/fornecedores'
+    | '/funcionarios-admin'
     | '/pdv'
     | '/produtos'
     | '/vendas'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/fechamento'
     | '/financeiro'
     | '/fornecedores'
+    | '/funcionarios-admin'
     | '/pdv'
     | '/produtos'
     | '/vendas'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fechamento'
     | '/_authenticated/financeiro'
     | '/_authenticated/fornecedores'
+    | '/_authenticated/funcionarios-admin'
     | '/_authenticated/pdv'
     | '/_authenticated/produtos'
     | '/_authenticated/vendas'
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPdvRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/funcionarios-admin': {
+      id: '/_authenticated/funcionarios-admin'
+      path: '/funcionarios-admin'
+      fullPath: '/funcionarios-admin'
+      preLoaderRoute: typeof AuthenticatedFuncionariosAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/fornecedores': {
       id: '/_authenticated/fornecedores'
       path: '/fornecedores'
@@ -249,6 +269,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFechamentoRoute: typeof AuthenticatedFechamentoRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedFornecedoresRoute: typeof AuthenticatedFornecedoresRoute
+  AuthenticatedFuncionariosAdminRoute: typeof AuthenticatedFuncionariosAdminRoute
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
@@ -260,6 +281,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFechamentoRoute: AuthenticatedFechamentoRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedFornecedoresRoute: AuthenticatedFornecedoresRoute,
+  AuthenticatedFuncionariosAdminRoute: AuthenticatedFuncionariosAdminRoute,
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
