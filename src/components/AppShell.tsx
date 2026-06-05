@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ShoppingCart, Package, Boxes, Receipt,
   Truck, Wallet, LogOut, Wine, Menu, X, FileBarChart2, Users,
+  ReceiptText, Printer,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 const items = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, admin: false },
   { to: "/pdv", label: "Frente de Caixa", icon: ShoppingCart, admin: false },
+  { to: "/comandas", label: "Contas Abertas", icon: ReceiptText, admin: false },
   { to: "/produtos", label: "Produtos", icon: Package, admin: false },
   { to: "/estoque", label: "Estoque", icon: Boxes, admin: false },
   { to: "/vendas", label: "Vendas", icon: Receipt, admin: false },
@@ -18,6 +20,7 @@ const items = [
   { to: "/financeiro", label: "Financeiro", icon: Wallet, admin: true },
   { to: "/fechamento", label: "Fechamento", icon: FileBarChart2, admin: true },
   { to: "/funcionarios-admin", label: "Funcionários", icon: Users, admin: true },
+  { to: "/impressoras", label: "Impressoras", icon: Printer, admin: true },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
