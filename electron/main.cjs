@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const path = require('path');
 
 // URL do app publicado no Lovable. Substitua pela URL real após publicar.
@@ -16,12 +16,32 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.cjs'),
     },
   });
 
   Menu.setApplicationMenu(null);
   win.maximize();
   win.loadURL(APP_URL);
+
+  // ===== IPC para impressoras =====
+  ipcMain.handle('printers:list', async () => {
+    try { return await win.webContents.getPrintersAsync(); }
+    catch { return []; }
+  });
+
+  ipcMain.handle('printers:print', async (_evt, { html, options }) => {
+    const printWin = new BrowserWindow({ show: false, webPreferences: { offscreen: false } });
+    await printWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    return new Promise((resolve) => {
+      printWin.webContents.print({
+        silent: !!options?.silent,
+        deviceName: options?.printer || undefined,
+        copies: options?.copies || 1,
+        printBackground: true,
+      }, (ok) => { printWin.close(); resolve({ ok }); });
+    });
+  });
 
   // Abrir links externos no navegador padrão
   win.webContents.setWindowOpenHandler(({ url }) => {
