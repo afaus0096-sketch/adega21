@@ -32,6 +32,51 @@ export type Database = {
         }
         Relationships: []
       }
+      comandas: {
+        Row: {
+          cliente_nome: string
+          cliente_telefone: string | null
+          closed_at: string | null
+          created_at: string
+          forma_pagamento: string | null
+          id: string
+          observacao: string | null
+          status: Database["public"]["Enums"]["comanda_status"]
+          total: number
+          updated_at: string
+          user_id: string
+          venda_id: string | null
+        }
+        Insert: {
+          cliente_nome: string
+          cliente_telefone?: string | null
+          closed_at?: string | null
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["comanda_status"]
+          total?: number
+          updated_at?: string
+          user_id: string
+          venda_id?: string | null
+        }
+        Update: {
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          closed_at?: string | null
+          created_at?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacao?: string | null
+          status?: Database["public"]["Enums"]["comanda_status"]
+          total?: number
+          updated_at?: string
+          user_id?: string
+          venda_id?: string | null
+        }
+        Relationships: []
+      }
       fluxo_caixa: {
         Row: {
           categoria: string
@@ -135,6 +180,47 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      itens_comanda: {
+        Row: {
+          comanda_id: string
+          created_at: string
+          id: string
+          preco_unitario: number
+          produto_id: string
+          produto_nome: string
+          quantidade: number
+          subtotal: number
+        }
+        Insert: {
+          comanda_id: string
+          created_at?: string
+          id?: string
+          preco_unitario: number
+          produto_id: string
+          produto_nome: string
+          quantidade: number
+          subtotal: number
+        }
+        Update: {
+          comanda_id?: string
+          created_at?: string
+          id?: string
+          preco_unitario?: number
+          produto_id?: string
+          produto_nome?: string
+          quantidade?: number
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_comanda_comanda_id_fkey"
+            columns: ["comanda_id"]
+            isOneToOne: false
+            referencedRelation: "comandas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       itens_venda: {
         Row: {
@@ -372,6 +458,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "caixa"
+      comanda_status: "aberta" | "fechada" | "cancelada"
       fluxo_tipo: "entrada" | "saida"
       movimento_tipo:
         | "entrada_compra"
@@ -510,6 +597,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "caixa"],
+      comanda_status: ["aberta", "fechada", "cancelada"],
       fluxo_tipo: ["entrada", "saida"],
       movimento_tipo: [
         "entrada_compra",
