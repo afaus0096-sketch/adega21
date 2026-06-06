@@ -46,6 +46,7 @@ function FuncionariosAdminPage() {
   const resetPin = useServerFn(resetFuncionarioPin);
   const toggleAtivo = useServerFn(setFuncionarioAtivo);
   const del = useServerFn(deleteFuncionario);
+  const setPerms = useServerFn(setFuncionarioPermissoes);
 
   useEffect(() => {
     if (!loading && role !== "admin") navigate({ to: "/dashboard", replace: true });
@@ -61,18 +62,35 @@ function FuncionariosAdminPage() {
   const [nome, setNome] = useState("");
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
+  const [novaPerms, setNovaPerms] = useState<string[]>(PERMISSOES_PADRAO as unknown as string[]);
 
   const [resetTarget, setResetTarget] = useState<Funcionario | null>(null);
   const [newPin, setNewPin] = useState("");
 
+  const [permsTarget, setPermsTarget] = useState<Funcionario | null>(null);
+  const [permsList, setPermsList] = useState<string[]>([]);
+
   const refresh = () => qc.invalidateQueries({ queryKey: ["funcionarios"] });
 
+  const togglePerm = (
+    list: string[], set: (l: string[]) => void, id: string,
+  ) => {
+    set(list.includes(id) ? list.filter((p) => p !== id) : [...list, id]);
+  };
+
   const createMut = useMutation({
-    mutationFn: () => create({ data: { nome, username, pin } }),
+    mutationFn: async () => {
+      const r: any = await create({ data: { nome, username, pin } });
+      if (r?.id) {
+        await setPerms({ data: { id: r.id, permissoes: novaPerms } });
+      }
+      return r;
+    },
     onSuccess: () => {
       toast.success(`Funcionário ${username} criado.`);
       setOpenNew(false);
       setNome(""); setUsername(""); setPin("");
+      setNovaPerms(PERMISSOES_PADRAO as unknown as string[]);
       refresh();
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao criar"),
@@ -96,6 +114,12 @@ function FuncionariosAdminPage() {
   const deleteMut = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
     onSuccess: () => { toast.success("Funcionário removido."); refresh(); },
+    onError: (e: any) => toast.error(e.message ?? "Erro"),
+  });
+
+  const permsMut = useMutation({
+    mutationFn: () => setPerms({ data: { id: permsTarget!.id, permissoes: permsList } }),
+    onSuccess: () => { toast.success("Permissões atualizadas."); setPermsTarget(null); refresh(); },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
