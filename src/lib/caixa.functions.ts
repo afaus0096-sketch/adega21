@@ -245,21 +245,11 @@ async function validarBrokenPasswordInterno(pwd: string): Promise<boolean> {
     .eq("key", BROKEN_KEY)
     .maybeSingle();
   if (!data?.value) return false;
-  const { data: result, error } = await supabaseAdmin.rpc("crypt_check", {
-    pwd,
-    hash: data.value,
-  });
-  if (error) {
-    // fallback usando SELECT crypt(...) via SQL
-    const { data: r2 } = await supabaseAdmin
-      .from("app_settings")
-      .select("value")
-      .eq("key", BROKEN_KEY)
-      .maybeSingle();
-    if (!r2?.value) return false;
-    // use raw via from select with computed
-    return false;
-  }
+  const { data: result, error } = await (supabaseAdmin.rpc as any)(
+    "crypt_check",
+    { pwd, hash: data.value },
+  );
+  if (error) return false;
   return !!result;
 }
 
