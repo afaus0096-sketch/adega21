@@ -216,6 +216,20 @@ function FuncionariosAdminPage() {
                 placeholder="••••••"
               />
             </div>
+            <div className="space-y-2 border-t pt-3">
+              <Label className="flex items-center gap-2"><Shield className="w-4 h-4" /> Telas liberadas</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                {PERMISSOES_DISPONIVEIS.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={novaPerms.includes(p.id)}
+                      onCheckedChange={() => togglePerm(novaPerms, setNovaPerms, p.id)}
+                    />
+                    {p.label}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpenNew(false)}>Cancelar</Button>
