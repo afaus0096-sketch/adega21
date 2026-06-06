@@ -2,14 +2,15 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, KeyRound, Power, Trash2, Users } from "lucide-react";
+import { UserPlus, KeyRound, Power, Trash2, Users, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -18,8 +19,9 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   listFuncionarios, createFuncionario, resetFuncionarioPin,
-  setFuncionarioAtivo, deleteFuncionario,
+  setFuncionarioAtivo, deleteFuncionario, setFuncionarioPermissoes,
 } from "@/lib/funcionarios.functions";
+import { PERMISSOES_DISPONIVEIS, PERMISSOES_PADRAO } from "@/lib/permissions";
 
 export const Route = createFileRoute("/_authenticated/funcionarios-admin")({
   component: FuncionariosAdminPage,
@@ -30,6 +32,7 @@ type Funcionario = {
   nome: string;
   username: string;
   ativo: boolean;
+  permissoes: string[] | null;
   created_at: string;
 };
 
