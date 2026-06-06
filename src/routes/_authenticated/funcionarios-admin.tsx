@@ -163,9 +163,15 @@ function FuncionariosAdminPage() {
                 <TableCell>
                   {f.ativo ? <Badge>Ativo</Badge> : <Badge variant="secondary">Inativo</Badge>}
                 </TableCell>
-                <TableCell className="text-right space-x-2">
+                <TableCell className="text-right space-x-1 space-y-1">
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setPermsTarget(f);
+                    setPermsList((f.permissoes as string[] | null) ?? []);
+                  }}>
+                    <Shield className="w-3.5 h-3.5 mr-1" /> Permissões
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => setResetTarget(f)}>
-                    <KeyRound className="w-3.5 h-3.5 mr-1" /> Resetar PIN
+                    <KeyRound className="w-3.5 h-3.5 mr-1" /> PIN
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => toggleMut.mutate(f)}>
                     <Power className="w-3.5 h-3.5 mr-1" /> {f.ativo ? "Desativar" : "Ativar"}
