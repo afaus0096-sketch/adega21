@@ -264,6 +264,35 @@ function FuncionariosAdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Permissões */}
+      <Dialog open={!!permsTarget} onOpenChange={(o) => !o && setPermsTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Permissões de {permsTarget?.nome}</DialogTitle>
+            <DialogDescription>
+              Marque as telas que este funcionário pode acessar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto">
+            {PERMISSOES_DISPONIVEIS.map((p) => (
+              <label key={p.id} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={permsList.includes(p.id)}
+                  onCheckedChange={() => togglePerm(permsList, setPermsList, p.id)}
+                />
+                {p.label}
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPermsTarget(null)}>Cancelar</Button>
+            <Button onClick={() => permsMut.mutate()} disabled={permsMut.isPending}>
+              {permsMut.isPending ? "Salvando…" : "Salvar permissões"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
