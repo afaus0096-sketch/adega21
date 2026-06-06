@@ -281,9 +281,10 @@ export const setBrokenPassword = createServerFn({ method: "POST" })
       "@/integrations/supabase/client.server"
     );
     // Gera hash via crypt() pgcrypto
-    const { data: row, error } = await supabaseAdmin.rpc("crypt_hash", {
-      pwd: data.newPassword,
-    });
+    const { data: row, error } = await (supabaseAdmin.rpc as any)(
+      "crypt_hash",
+      { pwd: data.newPassword },
+    );
     if (error) throw new Error(error.message);
     await supabaseAdmin
       .from("app_settings")
