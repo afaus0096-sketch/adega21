@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { brl } from "@/lib/format";
-import { ShoppingCart, Trash2, Plus, Minus, ScanLine, Search } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, ScanLine, Search, Printer } from "lucide-react";
 import { toast } from "sonner";
+import { imprimirCupom } from "@/lib/cupom";
 
 export const Route = createFileRoute("/_authenticated/pdv")({ component: PDV });
 
