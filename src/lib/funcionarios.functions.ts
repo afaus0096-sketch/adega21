@@ -28,7 +28,7 @@ export const listFuncionarios = createServerFn({ method: "GET" })
     await assertAdmin(supabase, userId);
     const { data, error } = await supabase
       .from("funcionarios")
-      .select("id, nome, username, ativo, created_at")
+      .select("id, nome, username, ativo, permissoes, created_at")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
