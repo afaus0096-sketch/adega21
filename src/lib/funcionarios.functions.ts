@@ -145,3 +145,26 @@ export const deleteFuncionario = createServerFn({ method: "POST" })
   });
 
 export const FUNCIONARIO_EMAIL_DOMAIN = FUNC_EMAIL_DOMAIN;
+
+export const setFuncionarioPermissoes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        permissoes: z.array(z.string().min(1).max(40)).max(20),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("funcionarios")
+      .update({ permissoes: data.permissoes })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
