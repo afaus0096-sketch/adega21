@@ -2,14 +2,15 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, KeyRound, Power, Trash2, Users } from "lucide-react";
+import { UserPlus, KeyRound, Power, Trash2, Users, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -18,8 +19,9 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   listFuncionarios, createFuncionario, resetFuncionarioPin,
-  setFuncionarioAtivo, deleteFuncionario,
+  setFuncionarioAtivo, deleteFuncionario, setFuncionarioPermissoes,
 } from "@/lib/funcionarios.functions";
+import { PERMISSOES_DISPONIVEIS, PERMISSOES_PADRAO } from "@/lib/permissions";
 
 export const Route = createFileRoute("/_authenticated/funcionarios-admin")({
   component: FuncionariosAdminPage,
@@ -30,6 +32,7 @@ type Funcionario = {
   nome: string;
   username: string;
   ativo: boolean;
+  permissoes: string[] | null;
   created_at: string;
 };
 
@@ -43,6 +46,7 @@ function FuncionariosAdminPage() {
   const resetPin = useServerFn(resetFuncionarioPin);
   const toggleAtivo = useServerFn(setFuncionarioAtivo);
   const del = useServerFn(deleteFuncionario);
+  const setPerms = useServerFn(setFuncionarioPermissoes);
 
   useEffect(() => {
     if (!loading && role !== "admin") navigate({ to: "/dashboard", replace: true });
@@ -58,18 +62,35 @@ function FuncionariosAdminPage() {
   const [nome, setNome] = useState("");
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
+  const [novaPerms, setNovaPerms] = useState<string[]>(PERMISSOES_PADRAO as unknown as string[]);
 
   const [resetTarget, setResetTarget] = useState<Funcionario | null>(null);
   const [newPin, setNewPin] = useState("");
 
+  const [permsTarget, setPermsTarget] = useState<Funcionario | null>(null);
+  const [permsList, setPermsList] = useState<string[]>([]);
+
   const refresh = () => qc.invalidateQueries({ queryKey: ["funcionarios"] });
 
+  const togglePerm = (
+    list: string[], set: (l: string[]) => void, id: string,
+  ) => {
+    set(list.includes(id) ? list.filter((p) => p !== id) : [...list, id]);
+  };
+
   const createMut = useMutation({
-    mutationFn: () => create({ data: { nome, username, pin } }),
+    mutationFn: async () => {
+      const r: any = await create({ data: { nome, username, pin } });
+      if (r?.id) {
+        await setPerms({ data: { id: r.id, permissoes: novaPerms } });
+      }
+      return r;
+    },
     onSuccess: () => {
       toast.success(`Funcionário ${username} criado.`);
       setOpenNew(false);
       setNome(""); setUsername(""); setPin("");
+      setNovaPerms(PERMISSOES_PADRAO as unknown as string[]);
       refresh();
     },
     onError: (e: any) => toast.error(e.message ?? "Erro ao criar"),
@@ -93,6 +114,12 @@ function FuncionariosAdminPage() {
   const deleteMut = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
     onSuccess: () => { toast.success("Funcionário removido."); refresh(); },
+    onError: (e: any) => toast.error(e.message ?? "Erro"),
+  });
+
+  const permsMut = useMutation({
+    mutationFn: () => setPerms({ data: { id: permsTarget!.id, permissoes: permsList } }),
+    onSuccess: () => { toast.success("Permissões atualizadas."); setPermsTarget(null); refresh(); },
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
@@ -136,9 +163,15 @@ function FuncionariosAdminPage() {
                 <TableCell>
                   {f.ativo ? <Badge>Ativo</Badge> : <Badge variant="secondary">Inativo</Badge>}
                 </TableCell>
-                <TableCell className="text-right space-x-2">
+                <TableCell className="text-right space-x-1 space-y-1">
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setPermsTarget(f);
+                    setPermsList((f.permissoes as string[] | null) ?? []);
+                  }}>
+                    <Shield className="w-3.5 h-3.5 mr-1" /> Permissões
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => setResetTarget(f)}>
-                    <KeyRound className="w-3.5 h-3.5 mr-1" /> Resetar PIN
+                    <KeyRound className="w-3.5 h-3.5 mr-1" /> PIN
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => toggleMut.mutate(f)}>
                     <Power className="w-3.5 h-3.5 mr-1" /> {f.ativo ? "Desativar" : "Ativar"}
@@ -183,6 +216,20 @@ function FuncionariosAdminPage() {
                 placeholder="••••••"
               />
             </div>
+            <div className="space-y-2 border-t pt-3">
+              <Label className="flex items-center gap-2"><Shield className="w-4 h-4" /> Telas liberadas</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                {PERMISSOES_DISPONIVEIS.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={novaPerms.includes(p.id)}
+                      onCheckedChange={() => togglePerm(novaPerms, setNovaPerms, p.id)}
+                    />
+                    {p.label}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpenNew(false)}>Cancelar</Button>
@@ -213,6 +260,35 @@ function FuncionariosAdminPage() {
             <Button variant="ghost" onClick={() => setResetTarget(null)}>Cancelar</Button>
             <Button onClick={() => resetMut.mutate()} disabled={resetMut.isPending}>
               {resetMut.isPending ? "Salvando…" : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Permissões */}
+      <Dialog open={!!permsTarget} onOpenChange={(o) => !o && setPermsTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Permissões de {permsTarget?.nome}</DialogTitle>
+            <DialogDescription>
+              Marque as telas que este funcionário pode acessar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto">
+            {PERMISSOES_DISPONIVEIS.map((p) => (
+              <label key={p.id} className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={permsList.includes(p.id)}
+                  onCheckedChange={() => togglePerm(permsList, setPermsList, p.id)}
+                />
+                {p.label}
+              </label>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPermsTarget(null)}>Cancelar</Button>
+            <Button onClick={() => permsMut.mutate()} disabled={permsMut.isPending}>
+              {permsMut.isPending ? "Salvando…" : "Salvar permissões"}
             </Button>
           </DialogFooter>
         </DialogContent>

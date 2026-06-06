@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { brl } from "@/lib/format";
-import { ShoppingCart, Trash2, Plus, Minus, ScanLine, Search } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, ScanLine, Search, Printer } from "lucide-react";
 import { toast } from "sonner";
+import { imprimirCupom } from "@/lib/cupom";
 
 export const Route = createFileRoute("/_authenticated/pdv")({ component: PDV });
 
@@ -88,7 +89,28 @@ function PDV() {
       const { error: e2 } = await supabase.from("itens_venda").insert(payload);
       if (e2) throw e2;
 
-      toast.success(`Venda #${venda.numero} concluída — ${brl(total)}`);
+      toast.success(`Venda #${venda.numero} concluída — ${brl(total)}`, {
+        action: {
+          label: "Imprimir cupom",
+          onClick: () =>
+            imprimirCupom({
+              titulo: "VENDA",
+              numero: venda.numero,
+              itens: itens.map((i) => ({
+                nome: i.produto.nome,
+                qtd: i.qtd,
+                preco: Number(i.produto.preco_venda),
+                subtotal: i.qtd * Number(i.produto.preco_venda),
+              })),
+              total,
+              forma_pagamento: forma,
+              recebido: forma === "dinheiro" ? Number(recebido) : undefined,
+              troco: forma === "dinheiro" ? troco : undefined,
+            }),
+        },
+        icon: <Printer className="w-4 h-4" />,
+        duration: 8000,
+      });
       setItens([]); setRecebido(""); setPayOpen(false); setForma("dinheiro");
       qc.invalidateQueries({ queryKey: ["produtos-pdv"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });

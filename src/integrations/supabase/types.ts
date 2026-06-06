@@ -14,6 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      caixa_logs: {
+        Row: {
+          acao: string
+          caixa_id: string | null
+          created_at: string
+          detalhe: string | null
+          id: string
+          user_id: string | null
+          user_nome: string | null
+        }
+        Insert: {
+          acao: string
+          caixa_id?: string | null
+          created_at?: string
+          detalhe?: string | null
+          id?: string
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Update: {
+          acao?: string
+          caixa_id?: string | null
+          created_at?: string
+          detalhe?: string | null
+          id?: string
+          user_id?: string | null
+          user_nome?: string | null
+        }
+        Relationships: []
+      }
+      caixas: {
+        Row: {
+          broken_used: boolean
+          closed_at: string | null
+          closed_by: string | null
+          closed_by_nome: string | null
+          data_dia: string
+          id: string
+          observacao: string | null
+          opened_at: string
+          opened_by: string
+          opened_by_nome: string | null
+          qtd_vendas: number
+          status: Database["public"]["Enums"]["caixa_status"]
+          total_vendas: number
+        }
+        Insert: {
+          broken_used?: boolean
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_by_nome?: string | null
+          data_dia: string
+          id?: string
+          observacao?: string | null
+          opened_at?: string
+          opened_by: string
+          opened_by_nome?: string | null
+          qtd_vendas?: number
+          status?: Database["public"]["Enums"]["caixa_status"]
+          total_vendas?: number
+        }
+        Update: {
+          broken_used?: boolean
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_by_nome?: string | null
+          data_dia?: string
+          id?: string
+          observacao?: string | null
+          opened_at?: string
+          opened_by?: string
+          opened_by_nome?: string | null
+          qtd_vendas?: number
+          status?: Database["public"]["Enums"]["caixa_status"]
+          total_vendas?: number
+        }
+        Relationships: []
+      }
       categorias: {
         Row: {
           created_at: string
@@ -158,6 +257,7 @@ export type Database = {
           created_by: string | null
           id: string
           nome: string
+          permissoes: string[]
           updated_at: string
           username: string
         }
@@ -167,6 +267,7 @@ export type Database = {
           created_by?: string | null
           id: string
           nome: string
+          permissoes?: string[]
           updated_at?: string
           username: string
         }
@@ -176,6 +277,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           nome?: string
+          permissoes?: string[]
           updated_at?: string
           username?: string
         }
@@ -448,6 +550,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      crypt_check: { Args: { hash: string; pwd: string }; Returns: boolean }
+      crypt_hash: { Args: { pwd: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -458,6 +562,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "caixa"
+      caixa_status: "aberto" | "fechado"
       comanda_status: "aberta" | "fechada" | "cancelada"
       fluxo_tipo: "entrada" | "saida"
       movimento_tipo:
@@ -597,6 +702,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "caixa"],
+      caixa_status: ["aberto", "fechado"],
       comanda_status: ["aberta", "fechada", "cancelada"],
       fluxo_tipo: ["entrada", "saida"],
       movimento_tipo: [

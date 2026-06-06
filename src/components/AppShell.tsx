@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ShoppingCart, Package, Boxes, Receipt,
   Truck, Wallet, LogOut, Wine, Menu, X, FileBarChart2, Users,
-  ReceiptText, Printer,
+  ReceiptText, Printer, CalendarClock, Settings,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -10,29 +10,35 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, admin: false },
-  { to: "/pdv", label: "Frente de Caixa", icon: ShoppingCart, admin: false },
-  { to: "/comandas", label: "Contas Abertas", icon: ReceiptText, admin: false },
-  { to: "/produtos", label: "Produtos", icon: Package, admin: false },
-  { to: "/estoque", label: "Estoque", icon: Boxes, admin: false },
-  { to: "/vendas", label: "Vendas", icon: Receipt, admin: false },
-  { to: "/fornecedores", label: "Fornecedores", icon: Truck, admin: true },
-  { to: "/financeiro", label: "Financeiro", icon: Wallet, admin: true },
-  { to: "/fechamento", label: "Fechamento", icon: FileBarChart2, admin: true },
-  { to: "/funcionarios-admin", label: "Funcionários", icon: Users, admin: true },
-  { to: "/impressoras", label: "Impressoras", icon: Printer, admin: true },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, perm: "dashboard" },
+  { to: "/pdv", label: "Frente de Caixa", icon: ShoppingCart, perm: "pdv" },
+  { to: "/caixa", label: "Caixa", icon: CalendarClock, perm: "caixa" },
+  { to: "/comandas", label: "Contas Abertas", icon: ReceiptText, perm: "comandas" },
+  { to: "/produtos", label: "Produtos", icon: Package, perm: "produtos" },
+  { to: "/estoque", label: "Estoque", icon: Boxes, perm: "estoque" },
+  { to: "/vendas", label: "Vendas", icon: Receipt, perm: "vendas" },
+  { to: "/fornecedores", label: "Fornecedores", icon: Truck, perm: "fornecedores" },
+  { to: "/financeiro", label: "Financeiro", icon: Wallet, perm: "financeiro" },
+  { to: "/fechamento", label: "Fechamento", icon: FileBarChart2, perm: "fechamento" },
+  // admin-only
+  { to: "/funcionarios-admin", label: "Funcionários", icon: Users, adminOnly: true },
+  { to: "/impressoras", label: "Impressoras", icon: Printer, adminOnly: true },
+  { to: "/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { signOut, role, user } = useAuth();
+  const { signOut, role, user, permissoes } = useAuth();
   const { location } = useRouterState();
   const [open, setOpen] = useState(false);
 
-  const visible = items.filter((i) => !i.admin || role === "admin");
+  const visible = items.filter((i) => {
+    if ("adminOnly" in i && i.adminOnly) return role === "admin";
+    if (role === "admin") return true;
+    return (permissoes ?? []).includes((i as any).perm);
+  });
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
       <aside className={cn(
         "fixed lg:sticky top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform lg:translate-x-0",
         open ? "translate-x-0" : "-translate-x-full"
