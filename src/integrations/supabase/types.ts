@@ -14,30 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      adegas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
+          adega_id: string
           key: string
           updated_at: string
           updated_by: string | null
           value: string
         }
         Insert: {
+          adega_id?: string
           key: string
           updated_at?: string
           updated_by?: string | null
           value: string
         }
         Update: {
+          adega_id?: string
           key?: string
           updated_at?: string
           updated_by?: string | null
           value?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       caixa_logs: {
         Row: {
           acao: string
+          adega_id: string
           caixa_id: string | null
           created_at: string
           detalhe: string | null
@@ -47,6 +89,7 @@ export type Database = {
         }
         Insert: {
           acao: string
+          adega_id?: string
           caixa_id?: string | null
           created_at?: string
           detalhe?: string | null
@@ -56,6 +99,7 @@ export type Database = {
         }
         Update: {
           acao?: string
+          adega_id?: string
           caixa_id?: string | null
           created_at?: string
           detalhe?: string | null
@@ -63,10 +107,19 @@ export type Database = {
           user_id?: string | null
           user_nome?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "caixa_logs_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       caixas: {
         Row: {
+          adega_id: string
           broken_used: boolean
           closed_at: string | null
           closed_by: string | null
@@ -82,6 +135,7 @@ export type Database = {
           total_vendas: number
         }
         Insert: {
+          adega_id?: string
           broken_used?: boolean
           closed_at?: string | null
           closed_by?: string | null
@@ -97,6 +151,7 @@ export type Database = {
           total_vendas?: number
         }
         Update: {
+          adega_id?: string
           broken_used?: boolean
           closed_at?: string | null
           closed_by?: string | null
@@ -111,28 +166,48 @@ export type Database = {
           status?: Database["public"]["Enums"]["caixa_status"]
           total_vendas?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "caixas_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       categorias: {
         Row: {
+          adega_id: string
           created_at: string
           id: string
           nome: string
         }
         Insert: {
+          adega_id?: string
           created_at?: string
           id?: string
           nome: string
         }
         Update: {
+          adega_id?: string
           created_at?: string
           id?: string
           nome?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categorias_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       comandas: {
         Row: {
+          adega_id: string
           cliente_nome: string
           cliente_telefone: string | null
           closed_at: string | null
@@ -147,6 +222,7 @@ export type Database = {
           venda_id: string | null
         }
         Insert: {
+          adega_id?: string
           cliente_nome: string
           cliente_telefone?: string | null
           closed_at?: string | null
@@ -161,6 +237,7 @@ export type Database = {
           venda_id?: string | null
         }
         Update: {
+          adega_id?: string
           cliente_nome?: string
           cliente_telefone?: string | null
           closed_at?: string | null
@@ -174,10 +251,19 @@ export type Database = {
           user_id?: string
           venda_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "comandas_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fluxo_caixa: {
         Row: {
+          adega_id: string
           categoria: string
           created_at: string
           descricao: string | null
@@ -188,6 +274,7 @@ export type Database = {
           venda_id: string | null
         }
         Insert: {
+          adega_id?: string
           categoria: string
           created_at?: string
           descricao?: string | null
@@ -198,6 +285,7 @@ export type Database = {
           venda_id?: string | null
         }
         Update: {
+          adega_id?: string
           categoria?: string
           created_at?: string
           descricao?: string | null
@@ -209,6 +297,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fluxo_caixa_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fluxo_caixa_venda_id_fkey"
             columns: ["venda_id"]
             isOneToOne: false
@@ -219,6 +314,7 @@ export type Database = {
       }
       fornecedores: {
         Row: {
+          adega_id: string
           cnpj: string | null
           created_at: string
           email: string | null
@@ -229,6 +325,7 @@ export type Database = {
           telefone: string | null
         }
         Insert: {
+          adega_id?: string
           cnpj?: string | null
           created_at?: string
           email?: string | null
@@ -239,6 +336,7 @@ export type Database = {
           telefone?: string | null
         }
         Update: {
+          adega_id?: string
           cnpj?: string | null
           created_at?: string
           email?: string | null
@@ -248,10 +346,19 @@ export type Database = {
           razao_social?: string
           telefone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fornecedores_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       funcionarios: {
         Row: {
+          adega_id: string
           ativo: boolean
           created_at: string
           created_by: string | null
@@ -262,6 +369,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          adega_id?: string
           ativo?: boolean
           created_at?: string
           created_by?: string | null
@@ -272,6 +380,7 @@ export type Database = {
           username: string
         }
         Update: {
+          adega_id?: string
           ativo?: boolean
           created_at?: string
           created_by?: string | null
@@ -281,10 +390,19 @@ export type Database = {
           updated_at?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "funcionarios_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       itens_comanda: {
         Row: {
+          adega_id: string
           comanda_id: string
           created_at: string
           id: string
@@ -295,6 +413,7 @@ export type Database = {
           subtotal: number
         }
         Insert: {
+          adega_id?: string
           comanda_id: string
           created_at?: string
           id?: string
@@ -305,6 +424,7 @@ export type Database = {
           subtotal: number
         }
         Update: {
+          adega_id?: string
           comanda_id?: string
           created_at?: string
           id?: string
@@ -316,6 +436,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "itens_comanda_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "itens_comanda_comanda_id_fkey"
             columns: ["comanda_id"]
             isOneToOne: false
@@ -326,6 +453,7 @@ export type Database = {
       }
       itens_venda: {
         Row: {
+          adega_id: string
           id: string
           preco_unitario: number
           produto_id: string
@@ -335,6 +463,7 @@ export type Database = {
           venda_id: string
         }
         Insert: {
+          adega_id?: string
           id?: string
           preco_unitario: number
           produto_id: string
@@ -344,6 +473,7 @@ export type Database = {
           venda_id: string
         }
         Update: {
+          adega_id?: string
           id?: string
           preco_unitario?: number
           produto_id?: string
@@ -353,6 +483,13 @@ export type Database = {
           venda_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "itens_venda_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "itens_venda_produto_id_fkey"
             columns: ["produto_id"]
@@ -371,6 +508,7 @@ export type Database = {
       }
       movimentacoes_estoque: {
         Row: {
+          adega_id: string
           created_at: string
           id: string
           observacao: string | null
@@ -381,6 +519,7 @@ export type Database = {
           venda_id: string | null
         }
         Insert: {
+          adega_id?: string
           created_at?: string
           id?: string
           observacao?: string | null
@@ -391,6 +530,7 @@ export type Database = {
           venda_id?: string | null
         }
         Update: {
+          adega_id?: string
           created_at?: string
           id?: string
           observacao?: string | null
@@ -402,6 +542,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "movimentacoes_estoque_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "movimentacoes_estoque_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
@@ -412,6 +559,7 @@ export type Database = {
       }
       produtos: {
         Row: {
+          adega_id: string
           ativo: boolean
           categoria_id: string | null
           codigo_barras: string | null
@@ -427,6 +575,7 @@ export type Database = {
           preco_venda: number
         }
         Insert: {
+          adega_id?: string
           ativo?: boolean
           categoria_id?: string | null
           codigo_barras?: string | null
@@ -442,6 +591,7 @@ export type Database = {
           preco_venda?: number
         }
         Update: {
+          adega_id?: string
           ativo?: boolean
           categoria_id?: string | null
           codigo_barras?: string | null
@@ -457,6 +607,13 @@ export type Database = {
           preco_venda?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "produtos_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "produtos_categoria_id_fkey"
             columns: ["categoria_id"]
@@ -475,45 +632,68 @@ export type Database = {
       }
       profiles: {
         Row: {
+          adega_id: string
           created_at: string
           email: string | null
           id: string
           nome: string
         }
         Insert: {
+          adega_id: string
           created_at?: string
           email?: string | null
           id: string
           nome: string
         }
         Update: {
+          adega_id?: string
           created_at?: string
           email?: string | null
           id?: string
           nome?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
+          adega_id: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          adega_id?: string | null
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          adega_id?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vendas: {
         Row: {
+          adega_id: string
           created_at: string
           forma_pagamento: Database["public"]["Enums"]["pagamento_forma"]
           id: string
@@ -524,6 +704,7 @@ export type Database = {
           valor_recebido: number | null
         }
         Insert: {
+          adega_id?: string
           created_at?: string
           forma_pagamento: Database["public"]["Enums"]["pagamento_forma"]
           id?: string
@@ -534,6 +715,7 @@ export type Database = {
           valor_recebido?: number | null
         }
         Update: {
+          adega_id?: string
           created_at?: string
           forma_pagamento?: Database["public"]["Enums"]["pagamento_forma"]
           id?: string
@@ -543,15 +725,25 @@ export type Database = {
           user_id?: string
           valor_recebido?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vendas_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_access_adega: { Args: { _adega: string }; Returns: boolean }
       crypt_check: { Args: { hash: string; pwd: string }; Returns: boolean }
       crypt_hash: { Args: { pwd: string }; Returns: string }
+      current_adega_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -559,6 +751,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _uid: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "caixa" | "super_admin"
