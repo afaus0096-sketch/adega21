@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ShoppingCart, Package, Boxes, Receipt,
   Truck, Wallet, LogOut, Wine, Menu, X, FileBarChart2, Users,
-  ReceiptText, Printer, CalendarClock, Settings,
+  ReceiptText, Printer, CalendarClock, Settings, Building2,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -24,15 +24,19 @@ const items = [
   { to: "/funcionarios-admin", label: "Funcionários", icon: Users, adminOnly: true },
   { to: "/impressoras", label: "Impressoras", icon: Printer, adminOnly: true },
   { to: "/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
+  // super-admin only
+  { to: "/super-admin", label: "Adegas (Super)", icon: Building2, superOnly: true },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { signOut, role, user, permissoes } = useAuth();
+  const { signOut, role, user, permissoes, adega, isSuperAdmin } = useAuth();
   const { location } = useRouterState();
   const [open, setOpen] = useState(false);
 
   const visible = items.filter((i) => {
-    if ("adminOnly" in i && i.adminOnly) return role === "admin";
+    if ("superOnly" in i && i.superOnly) return isSuperAdmin;
+    if ("adminOnly" in i && i.adminOnly) return role === "admin" || isSuperAdmin;
+    if (isSuperAdmin) return true;
     if (role === "admin") return true;
     return (permissoes ?? []).includes((i as any).perm);
   });
@@ -43,11 +47,22 @@ export function AppShell({ children }: { children: ReactNode }) {
         "fixed lg:sticky top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform lg:translate-x-0",
         open ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="p-5 flex items-center justify-between border-b border-sidebar-border">
-          <Link to="/dashboard" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-            <Wine className="w-6 h-6 text-accent" />
-            <span className="display text-lg font-bold text-sidebar-foreground">Adega PDV</span>
-          </Link>
+        <div className="p-5 border-b border-sidebar-border">
+          <div className="flex items-center justify-between">
+            <Link to="/dashboard" className="flex items-center gap-2" onClick={() => setOpen(false)}>
+              <Wine className="w-6 h-6 text-accent" />
+              <span className="display text-lg font-bold text-sidebar-foreground">Adega PDV</span>
+            </Link>
+            <button className="lg:hidden text-sidebar-foreground" onClick={() => setOpen(false)}>
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          {(adega || isSuperAdmin) && (
+            <div className="mt-2 text-xs text-muted-foreground truncate">
+              {isSuperAdmin && !adega ? "🛡️ Super Admin" : `📍 ${adega?.nome}`}
+            </div>
+          )}
+        </div>
           <button className="lg:hidden text-sidebar-foreground" onClick={() => setOpen(false)}>
             <X className="w-5 h-5" />
           </button>
