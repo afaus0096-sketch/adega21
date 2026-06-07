@@ -10,22 +10,35 @@ const usernameSchema = z
   .regex(/^[a-z0-9_.-]+$/, "Use apenas letras minúsculas, números, _ . -");
 const pinSchema = z.string().regex(/^\d{6}$/, "PIN deve ter 6 dígitos");
 
-async function assertAdmin(supabase: any, userId: string) {
+export function funcionarioEmail(slug: string, username: string) {
+  return slug === "principal"
+    ? `${username}@${FUNC_EMAIL_DOMAIN}`
+    : `${slug}.${username}@${FUNC_EMAIL_DOMAIN}`;
+}
+
+async function getAdminContext(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("user_roles")
-    .select("role")
+    .select("role, adega_id")
     .eq("user_id", userId);
   if (error) throw new Error(error.message);
-  if (!(data ?? []).some((r: any) => r.role === "admin")) {
+  const adminRow = (data ?? []).find((r: any) => r.role === "admin");
+  if (!adminRow) {
     throw new Error("Apenas administradores podem executar essa ação.");
   }
+  const { data: a } = await supabase
+    .from("adegas")
+    .select("slug")
+    .eq("id", adminRow.adega_id)
+    .maybeSingle();
+  return { adegaId: adminRow.adega_id as string, slug: a?.slug as string };
 }
 
 export const listFuncionarios = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
+    await getAdminContext(supabase, userId);
     const { data, error } = await supabase
       .from("funcionarios")
       .select("id, nome, username, ativo, permissoes, created_at")
@@ -47,24 +60,25 @@ export const createFuncionario = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
+    const { adegaId, slug } = await getAdminContext(supabase, userId);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const email = `${data.username}@${FUNC_EMAIL_DOMAIN}`;
+    const email = funcionarioEmail(slug, data.username);
 
     const { data: existing } = await supabase
       .from("funcionarios")
       .select("id")
       .eq("username", data.username)
+      .eq("adega_id", adegaId)
       .maybeSingle();
-    if (existing) throw new Error("Já existe um funcionário com esse usuário.");
+    if (existing) throw new Error("Já existe um funcionário com esse usuário nessa adega.");
 
     const { data: created, error: createErr } =
       await supabaseAdmin.auth.admin.createUser({
         email,
         password: data.pin,
         email_confirm: true,
-        user_metadata: { nome: data.nome, funcionario: true, username: data.username },
+        user_metadata: { nome: data.nome, funcionario: true, username: data.username, adega_id: adegaId },
       });
     if (createErr || !created.user) {
       throw new Error(createErr?.message ?? "Falha ao criar usuário");
@@ -72,13 +86,17 @@ export const createFuncionario = createServerFn({ method: "POST" })
 
     const newUserId = created.user.id;
 
-    // O trigger handle_new_user pode ter inserido 'admin' (caso a tabela
-    // user_roles estivesse vazia) ou 'caixa'. Forçamos 'caixa'.
     await supabaseAdmin.from("user_roles").delete().eq("user_id", newUserId);
     const { error: roleErr } = await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: newUserId, role: "caixa" });
+      .insert({ user_id: newUserId, role: "caixa", adega_id: adegaId });
     if (roleErr) throw new Error(roleErr.message);
+
+    // garante profile com adega
+    await supabaseAdmin
+      .from("profiles")
+      .update({ adega_id: adegaId })
+      .eq("id", newUserId);
 
     const { error: funcErr } = await supabaseAdmin.from("funcionarios").insert({
       id: newUserId,
@@ -86,6 +104,7 @@ export const createFuncionario = createServerFn({ method: "POST" })
       username: data.username,
       ativo: true,
       created_by: userId,
+      adega_id: adegaId,
     });
     if (funcErr) throw new Error(funcErr.message);
 
@@ -99,7 +118,7 @@ export const resetFuncionarioPin = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
+    await getAdminContext(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.id, {
       password: data.pin,
@@ -115,14 +134,13 @@ export const setFuncionarioAtivo = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
+    await getAdminContext(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("funcionarios")
       .update({ ativo: data.ativo })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
-    // Banir/desbanir no auth para impedir login quando inativo
     const { error: bErr } = await supabaseAdmin.auth.admin.updateUserById(data.id, {
       ban_duration: data.ativo ? "none" : "876000h",
     });
@@ -135,7 +153,7 @@ export const deleteFuncionario = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
+    await getAdminContext(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("funcionarios").delete().eq("id", data.id);
     await supabaseAdmin.from("user_roles").delete().eq("user_id", data.id);
@@ -158,7 +176,7 @@ export const setFuncionarioPermissoes = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
+    await getAdminContext(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("funcionarios")
@@ -167,4 +185,3 @@ export const setFuncionarioPermissoes = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
-
