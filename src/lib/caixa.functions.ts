@@ -87,11 +87,11 @@ export const abrirCaixa = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
+    const adegaId = await getUserAdegaId(userId);
     const { supabaseAdmin } = await import(
       "@/integrations/supabase/client.server"
     );
 
-    // 1. Valida PIN/senha do usuário logado (usando publishable key)
     const { data: userInfo } = await supabaseAdmin.auth.admin.getUserById(userId);
     if (!userInfo.user?.email) throw new Error("Usuário inválido.");
 
@@ -107,7 +107,6 @@ export const abrirCaixa = createServerFn({ method: "POST" })
     });
     if (pinErr) throw new Error("Senha/PIN incorreto.");
 
-    // 2. Verifica se há caixa aberto
     const { data: aberto } = await supabase
       .from("caixas")
       .select("*")
@@ -122,19 +121,15 @@ export const abrirCaixa = createServerFn({ method: "POST" })
       if (aberto.data_dia === hoje) {
         throw new Error("Já existe um caixa aberto para hoje.");
       }
-      // Caixa de dia anterior pendente — exige senha de quebra
       if (!data.brokenPassword) {
         throw new Error(
           `PENDENTE:O caixa do dia ${aberto.data_dia} não foi finalizado. É necessário a senha "Broken Caixa" para forçar o fechamento.`,
         );
       }
-      const okBroken = await validarBrokenPasswordInterno(
-        data.brokenPassword,
-      );
+      const okBroken = await validarBrokenPasswordInterno(adegaId, data.brokenPassword);
       if (!okBroken) throw new Error("Senha Broken Caixa incorreta.");
 
-      // Fecha automaticamente o pendente
-      const totais = await calcularTotaisDoCaixa(supabaseAdmin, aberto);
+      const totais = await calcularTotaisDoCaixa(supabaseAdmin, aberto, adegaId);
       await supabaseAdmin
         .from("caixas")
         .update({
@@ -155,11 +150,11 @@ export const abrirCaixa = createServerFn({ method: "POST" })
         user_id: userId,
         user_nome: nome,
         detalhe: `Fechamento forçado do caixa de ${aberto.data_dia}`,
+        adega_id: adegaId,
       });
       brokenUsado = true;
     }
 
-    // 3. Insere novo caixa
     const { data: novo, error: insErr } = await supabaseAdmin
       .from("caixas")
       .insert({
@@ -168,6 +163,7 @@ export const abrirCaixa = createServerFn({ method: "POST" })
         opened_by_nome: nome,
         status: "aberto",
         broken_used: brokenUsado,
+        adega_id: adegaId,
       })
       .select()
       .single();
@@ -181,6 +177,7 @@ export const abrirCaixa = createServerFn({ method: "POST" })
       detalhe: brokenUsado
         ? "Caixa aberto após fechar pendente via Broken"
         : "Abertura normal",
+      adega_id: adegaId,
     });
 
     return { id: novo.id, brokenUsado };
@@ -194,6 +191,7 @@ export const fecharCaixa = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
+    const adegaId = await getUserAdegaId(userId);
     const { supabaseAdmin } = await import(
       "@/integrations/supabase/client.server"
     );
@@ -206,7 +204,7 @@ export const fecharCaixa = createServerFn({ method: "POST" })
     if (cx.status === "fechado") throw new Error("Esse caixa já está fechado.");
 
     const nome = await getNomeUsuario(supabase, userId);
-    const totais = await calcularTotaisDoCaixa(supabaseAdmin, cx);
+    const totais = await calcularTotaisDoCaixa(supabaseAdmin, cx, adegaId);
 
     await supabaseAdmin
       .from("caixas")
@@ -227,15 +225,17 @@ export const fecharCaixa = createServerFn({ method: "POST" })
       user_id: userId,
       user_nome: nome,
       detalhe: `Fechamento normal. Total: R$ ${totais.total.toFixed(2)}`,
+      adega_id: adegaId,
     });
 
     return { ok: true, ...totais };
   });
 
-async function calcularTotaisDoCaixa(supabaseAdmin: any, cx: any) {
+async function calcularTotaisDoCaixa(supabaseAdmin: any, cx: any, adegaId: string) {
   const { data } = await supabaseAdmin
     .from("vendas")
     .select("total")
+    .eq("adega_id", adegaId)
     .gte("created_at", cx.opened_at)
     .lte("created_at", new Date().toISOString());
   const total = (data ?? []).reduce(
@@ -245,10 +245,10 @@ async function calcularTotaisDoCaixa(supabaseAdmin: any, cx: any) {
   return { total, qtd: (data ?? []).length };
 }
 
-// ===== BROKEN PASSWORD =====
+// ===== BROKEN PASSWORD (por adega) =====
 const BROKEN_KEY = "broken_caixa_password_hash";
 
-async function validarBrokenPasswordInterno(pwd: string): Promise<boolean> {
+async function validarBrokenPasswordInterno(adegaId: string, pwd: string): Promise<boolean> {
   const { supabaseAdmin } = await import(
     "@/integrations/supabase/client.server"
   );
@@ -256,6 +256,7 @@ async function validarBrokenPasswordInterno(pwd: string): Promise<boolean> {
     .from("app_settings")
     .select("value")
     .eq("key", BROKEN_KEY)
+    .eq("adega_id", adegaId)
     .maybeSingle();
   if (!data?.value) return false;
   const { data: result, error } = await (supabaseAdmin.rpc as any)(
@@ -268,7 +269,9 @@ async function validarBrokenPasswordInterno(pwd: string): Promise<boolean> {
 
 export const hasBrokenPassword = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
+    const { userId } = context as any;
+    const adegaId = await getUserAdegaId(userId);
     const { supabaseAdmin } = await import(
       "@/integrations/supabase/client.server"
     );
@@ -276,6 +279,7 @@ export const hasBrokenPassword = createServerFn({ method: "GET" })
       .from("app_settings")
       .select("key")
       .eq("key", BROKEN_KEY)
+      .eq("adega_id", adegaId)
       .maybeSingle();
     return { exists: !!data };
   });
@@ -290,10 +294,10 @@ export const setBrokenPassword = createServerFn({ method: "POST" })
     if (!(await isAdmin(supabase, userId))) {
       throw new Error("Apenas administradores podem alterar a senha Broken.");
     }
+    const adegaId = await getUserAdegaId(userId);
     const { supabaseAdmin } = await import(
       "@/integrations/supabase/client.server"
     );
-    // Gera hash via crypt() pgcrypto
     const { data: row, error } = await (supabaseAdmin.rpc as any)(
       "crypt_hash",
       { pwd: data.newPassword },
@@ -302,6 +306,7 @@ export const setBrokenPassword = createServerFn({ method: "POST" })
     await supabaseAdmin
       .from("app_settings")
       .upsert({
+        adega_id: adegaId,
         key: BROKEN_KEY,
         value: row as string,
         updated_at: new Date().toISOString(),
