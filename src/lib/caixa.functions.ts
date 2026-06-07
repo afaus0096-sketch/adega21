@@ -7,7 +7,20 @@ async function isAdmin(supabase: any, userId: string) {
     .from("user_roles")
     .select("role")
     .eq("user_id", userId);
-  return (data ?? []).some((r: any) => r.role === "admin");
+  return (data ?? []).some((r: any) => r.role === "admin" || r.role === "super_admin");
+}
+
+async function getUserAdegaId(userId: string): Promise<string> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("adega_id")
+    .eq("user_id", userId)
+    .not("adega_id", "is", null)
+    .limit(1)
+    .maybeSingle();
+  if (!data?.adega_id) throw new Error("Usuário não vinculado a uma adega.");
+  return data.adega_id as string;
 }
 
 async function getNomeUsuario(supabase: any, userId: string): Promise<string> {
