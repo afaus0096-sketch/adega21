@@ -63,10 +63,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           )}
         </div>
-          <button className="lg:hidden text-sidebar-foreground" onClick={() => setOpen(false)}>
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {visible.map((i) => {
