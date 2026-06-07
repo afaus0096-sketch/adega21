@@ -40,20 +40,26 @@ export const ROUTE_PERMISSION: Record<string, PermissaoId> = {
 };
 
 export function canAccess(
-  role: "admin" | "caixa" | null,
+  role: "admin" | "caixa" | "super_admin" | null,
   permissoes: string[] | null,
   pathname: string,
 ): boolean {
-  if (role === "admin") return true;
+  if (role === "super_admin") return true;
+  if (role === "admin") {
+    // admin de adega não acessa rota de super admin
+    if (pathname.startsWith("/super-admin")) return false;
+    return true;
+  }
   // Rotas admin-only:
   if (
     pathname.startsWith("/funcionarios-admin") ||
     pathname.startsWith("/impressoras") ||
-    pathname.startsWith("/configuracoes")
+    pathname.startsWith("/configuracoes") ||
+    pathname.startsWith("/super-admin")
   ) {
     return false;
   }
   const key = Object.keys(ROUTE_PERMISSION).find((p) => pathname.startsWith(p));
-  if (!key) return true; // rota desconhecida -> permite
+  if (!key) return true;
   return (permissoes ?? []).includes(ROUTE_PERMISSION[key]);
 }
