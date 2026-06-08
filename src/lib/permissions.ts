@@ -25,7 +25,6 @@ export const PERMISSOES_PADRAO: PermissaoId[] = [
   "caixa",
 ];
 
-// Mapa rota -> permissão necessária. Rotas só de admin não estão aqui.
 export const ROUTE_PERMISSION: Record<string, PermissaoId> = {
   "/dashboard": "dashboard",
   "/pdv": "pdv",
@@ -40,15 +39,24 @@ export const ROUTE_PERMISSION: Record<string, PermissaoId> = {
 };
 
 export function canAccess(
-  role: "admin" | "caixa" | null,
+  role: "super_admin" | "admin" | "caixa" | null,
   permissoes: string[] | null,
   pathname: string,
 ): boolean {
-  if (role === "admin") return true;
+  if (role === "super_admin") {
+    // Super só acessa Accounts
+    return pathname.startsWith("/accounts");
+  }
+  if (role === "admin") {
+    // Admin não acessa Accounts
+    if (pathname.startsWith("/accounts")) return false;
+    return true;
+  }
   if (
     pathname.startsWith("/funcionarios-admin") ||
     pathname.startsWith("/impressoras") ||
-    pathname.startsWith("/configuracoes")
+    pathname.startsWith("/configuracoes") ||
+    pathname.startsWith("/accounts")
   ) {
     return false;
   }
