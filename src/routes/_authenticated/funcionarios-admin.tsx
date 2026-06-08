@@ -90,16 +90,17 @@ function FuncionariosAdminPage() {
 
   const createMut = useMutation({
     mutationFn: async () => {
-      const r: any = await create({ data: { nome, username, pin } });
+      const r: any = await create({ data: { nome, username, pin, cargo } });
+      const perms = cargoEhGerencial ? TODAS_PERMS : novaPerms;
       if (r?.id) {
-        await setPerms({ data: { id: r.id, permissoes: novaPerms } });
+        await setPerms({ data: { id: r.id, permissoes: perms } });
       }
       return r;
     },
     onSuccess: () => {
-      toast.success(`Funcionário ${username} criado.`);
+      toast.success(`${CARGO_LABEL[cargo]} ${username} criado.`);
       setOpenNew(false);
-      setNome(""); setUsername(""); setPin("");
+      setNome(""); setUsername(""); setPin(""); setCargo("caixa");
       setNovaPerms(PERMISSOES_PADRAO as unknown as string[]);
       refresh();
     },
@@ -157,19 +158,25 @@ function FuncionariosAdminPage() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Usuário</TableHead>
+              <TableHead>Cargo</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Carregando…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Carregando…</TableCell></TableRow>
             ) : funcionarios.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum funcionário cadastrado.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum funcionário cadastrado.</TableCell></TableRow>
             ) : funcionarios.map((f) => (
               <TableRow key={f.id}>
                 <TableCell className="font-medium">{f.nome}</TableCell>
                 <TableCell className="font-mono text-sm">{f.username}</TableCell>
+                <TableCell>
+                  <Badge variant={f.cargo === "caixa" ? "outline" : "default"}>
+                    {CARGO_LABEL[(f.cargo ?? "caixa") as Cargo]}
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   {f.ativo ? <Badge>Ativo</Badge> : <Badge variant="secondary">Inativo</Badge>}
                 </TableCell>
@@ -204,6 +211,20 @@ function FuncionariosAdminPage() {
           <DialogHeader><DialogTitle>Novo funcionário</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
+              <Label>Cargo</Label>
+              <Select value={cargo} onValueChange={(v) => setCargo(v as Cargo)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dono">Dono — acesso total</SelectItem>
+                  <SelectItem value="gerente">Gerente — acesso total</SelectItem>
+                  <SelectItem value="caixa">Caixa — permissões limitadas</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Dono e Gerente têm acesso a todas as telas. Caixa usa permissões específicas.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label>Nome</Label>
               <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="João da Silva" />
             </div>
@@ -226,20 +247,22 @@ function FuncionariosAdminPage() {
                 placeholder="••••••"
               />
             </div>
-            <div className="space-y-2 border-t pt-3">
-              <Label className="flex items-center gap-2"><Shield className="w-4 h-4" /> Telas liberadas</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                {PERMISSOES_DISPONIVEIS.map((p) => (
-                  <label key={p.id} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={novaPerms.includes(p.id)}
-                      onCheckedChange={() => togglePerm(novaPerms, setNovaPerms, p.id)}
-                    />
-                    {p.label}
-                  </label>
-                ))}
+            {!cargoEhGerencial && (
+              <div className="space-y-2 border-t pt-3">
+                <Label className="flex items-center gap-2"><Shield className="w-4 h-4" /> Telas liberadas</Label>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                  {PERMISSOES_DISPONIVEIS.map((p) => (
+                    <label key={p.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={novaPerms.includes(p.id)}
+                        onCheckedChange={() => togglePerm(novaPerms, setNovaPerms, p.id)}
+                      />
+                      {p.label}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setOpenNew(false)}>Cancelar</Button>
