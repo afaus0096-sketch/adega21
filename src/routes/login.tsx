@@ -1,132 +1,59 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
-import { Wine, Shield, User, Crown } from "lucide-react";
+import { Wine, Shield, User } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { listAdegasAtivas } from "@/lib/adegas.functions";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
 const FUNC_DOMAIN = "funcionarios.adega.local";
-
-function funcionarioEmail(slug: string, username: string) {
-  return slug === "principal"
-    ? `${username}@${FUNC_DOMAIN}`
-    : `${slug}.${username}@${FUNC_DOMAIN}`;
-}
 
 function LoginPage() {
   const { user, signIn, loading } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState("adm");
 
-  const listFn = useServerFn(listAdegasAtivas);
-  const { data: adegas } = useQuery({
-    queryKey: ["adegas-publicas"],
-    queryFn: () => listFn() as Promise<{ id: string; nome: string; slug: string }[]>,
-  });
-
-  const [adegaId, setAdegaId] = useState<string>("");
-  // ADM
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Funcionário
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
-  // Super Admin
-  const [superEmail, setSuperEmail] = useState("");
-  const [superPwd, setSuperPwd] = useState("");
-
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/dashboard", replace: true });
   }, [user, loading, navigate]);
 
-  // Seleciona primeira adega ativa por padrão
-  useEffect(() => {
-    if (!adegaId && adegas && adegas.length > 0) setAdegaId(adegas[0].id);
-  }, [adegas, adegaId]);
-
-  const adegaSelecionada = adegas?.find((a) => a.id === adegaId);
-
-  async function validarAdega(uid: string, esperado: string) {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("adega_id, role")
-      .eq("user_id", uid);
-    const ok =
-      (data ?? []).some(
-        (r) => r.role === "super_admin" || r.adega_id === esperado,
-      );
-    return ok;
-  }
-
   const submitAdm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adegaSelecionada) { toast.error("Selecione a adega."); return; }
     setBusy(true);
     const r = await signIn(email, password);
-    if (r.error) { setBusy(false); toast.error(r.error); return; }
-    const { data: { user: u } } = await supabase.auth.getUser();
-    if (u && !(await validarAdega(u.id, adegaSelecionada.id))) {
-      await supabase.auth.signOut();
-      setBusy(false);
-      toast.error("Esse usuário não pertence à adega selecionada.");
-      return;
-    }
     setBusy(false);
+    if (r.error) toast.error(r.error);
   };
 
   const submitFunc = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adegaSelecionada) { toast.error("Selecione a adega."); return; }
     if (!/^[a-z0-9_.-]+$/.test(username)) { toast.error("Usuário inválido."); return; }
     if (!/^\d{6}$/.test(pin)) { toast.error("PIN deve ter 6 dígitos."); return; }
     setBusy(true);
-    const { error, data } = await supabase.auth.signInWithPassword({
-      email: funcionarioEmail(adegaSelecionada.slug, username),
+    let { error } = await supabase.auth.signInWithPassword({
+      email: `${username}@${FUNC_DOMAIN}`,
       password: pin,
     });
-    if (error) { setBusy(false); toast.error("Usuário ou PIN inválido."); return; }
-    if (data.user && !(await validarAdega(data.user.id, adegaSelecionada.id))) {
-      await supabase.auth.signOut();
-      setBusy(false);
-      toast.error("Esse usuário não pertence à adega selecionada.");
-      return;
+    if (error) {
+      const retry = await supabase.auth.signInWithPassword({
+        email: `principal.${username}@${FUNC_DOMAIN}`,
+        password: pin,
+      });
+      error = retry.error;
     }
     setBusy(false);
-  };
-
-  const submitSuper = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    const r = await signIn(superEmail, superPwd);
-    if (r.error) { setBusy(false); toast.error(r.error); return; }
-    const { data: { user: u } } = await supabase.auth.getUser();
-    if (u) {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", u.id)
-        .eq("role", "super_admin")
-        .maybeSingle();
-      if (!data) {
-        await supabase.auth.signOut();
-        setBusy(false);
-        toast.error("Esse usuário não é Super Admin.");
-        return;
-      }
-    }
-    setBusy(false);
+    if (error) toast.error("Usuário ou PIN inválido.");
   };
 
   return (
@@ -159,33 +86,16 @@ function LoginPage() {
           </div>
 
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="grid grid-cols-3 w-full">
+            <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="adm" className="gap-1.5">
                 <Shield className="w-4 h-4" /> ADM
               </TabsTrigger>
               <TabsTrigger value="func" className="gap-1.5">
                 <User className="w-4 h-4" /> Funcionário
               </TabsTrigger>
-              <TabsTrigger value="super" className="gap-1.5">
-                <Crown className="w-4 h-4" /> Super
-              </TabsTrigger>
             </TabsList>
 
-            {(tab === "adm" || tab === "func") && (
-              <div className="mt-6 space-y-2">
-                <Label>Adega</Label>
-                <Select value={adegaId} onValueChange={setAdegaId}>
-                  <SelectTrigger><SelectValue placeholder="Selecione a adega" /></SelectTrigger>
-                  <SelectContent>
-                    {(adegas ?? []).map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <TabsContent value="adm" className="mt-4">
+            <TabsContent value="adm" className="mt-6">
               <form onSubmit={submitAdm} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -198,13 +108,10 @@ function LoginPage() {
                 <Button type="submit" className="w-full" size="lg" disabled={busy}>
                   {busy ? "Aguarde…" : "Entrar como ADM"}
                 </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  Acessos ADM são criados pelo Super Admin.
-                </p>
               </form>
             </TabsContent>
 
-            <TabsContent value="func" className="mt-4">
+            <TabsContent value="func" className="mt-6">
               <form onSubmit={submitFunc} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="username">Usuário</Label>
@@ -234,25 +141,6 @@ function LoginPage() {
                 <Button type="submit" className="w-full" size="lg" disabled={busy}>
                   {busy ? "Aguarde…" : "Entrar como funcionário"}
                 </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="super" className="mt-6">
-              <form onSubmit={submitSuper} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Email Super Admin</Label>
-                  <Input type="email" value={superEmail} onChange={(e) => setSuperEmail(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Senha</Label>
-                  <Input type="password" value={superPwd} onChange={(e) => setSuperPwd(e.target.value)} required minLength={6} />
-                </div>
-                <Button type="submit" className="w-full" size="lg" disabled={busy} variant="default">
-                  {busy ? "Aguarde…" : "Entrar como Super Admin"}
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  Acesso ao painel global de gerenciamento de adegas.
-                </p>
               </form>
             </TabsContent>
           </Tabs>
