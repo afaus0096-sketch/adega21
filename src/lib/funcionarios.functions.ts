@@ -9,6 +9,7 @@ const usernameSchema = z
   .max(32)
   .regex(/^[a-z0-9_.-]+$/, "Use apenas letras minúsculas, números, _ . -");
 const pinSchema = z.string().regex(/^\d{6}$/, "PIN deve ter 6 dígitos");
+const cargoSchema = z.enum(["dono", "gerente", "caixa"]);
 
 export function funcionarioEmail(slug: string, username: string) {
   return slug === "principal"
@@ -41,7 +42,7 @@ export const listFuncionarios = createServerFn({ method: "GET" })
     await getAdminContext(supabase, userId);
     const { data, error } = await supabase
       .from("funcionarios")
-      .select("id, nome, username, ativo, permissoes, created_at")
+      .select("id, nome, username, ativo, permissoes, cargo, created_at")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -55,6 +56,7 @@ export const createFuncionario = createServerFn({ method: "POST" })
         nome: z.string().trim().min(2).max(80),
         username: usernameSchema,
         pin: pinSchema,
+        cargo: cargoSchema,
       })
       .parse(input),
   )
@@ -86,13 +88,14 @@ export const createFuncionario = createServerFn({ method: "POST" })
 
     const newUserId = created.user.id;
 
+    // Dono e Gerente recebem role admin; Caixa recebe role caixa
+    const dbRole = data.cargo === "caixa" ? "caixa" : "admin";
     await supabaseAdmin.from("user_roles").delete().eq("user_id", newUserId);
     const { error: roleErr } = await supabaseAdmin
       .from("user_roles")
-      .insert({ user_id: newUserId, role: "caixa", adega_id: adegaId });
+      .insert({ user_id: newUserId, role: dbRole, adega_id: adegaId });
     if (roleErr) throw new Error(roleErr.message);
 
-    // garante profile com adega
     await supabaseAdmin
       .from("profiles")
       .update({ adega_id: adegaId })
@@ -105,10 +108,11 @@ export const createFuncionario = createServerFn({ method: "POST" })
       ativo: true,
       created_by: userId,
       adega_id: adegaId,
+      cargo: data.cargo,
     });
     if (funcErr) throw new Error(funcErr.message);
 
-    return { id: newUserId, username: data.username };
+    return { id: newUserId, username: data.username, cargo: data.cargo };
   });
 
 export const resetFuncionarioPin = createServerFn({ method: "POST" })
@@ -154,11 +158,19 @@ export const deleteFuncionario = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     await getAdminContext(supabase, userId);
+    if (data.id === userId) throw new Error("Você não pode remover a si mesmo.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Remove funcionario primeiro (sem FK pra auth.users)
     await supabaseAdmin.from("funcionarios").delete().eq("id", data.id);
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.id);
+    // user_roles e profiles têm ON DELETE CASCADE em auth.users — basta deletar o usuário
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.id);
-    if (error) throw new Error(error.message);
+    if (error) {
+      // fallback: limpa manualmente e ignora erro de auth (usuário pode ter referências)
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", data.id);
+      await supabaseAdmin.from("profiles").delete().eq("id", data.id);
+      // soft-delete: bane o usuário pra impedir login
+      await supabaseAdmin.auth.admin.updateUserById(data.id, { ban_duration: "876000h" });
+    }
     return { ok: true };
   });
 
