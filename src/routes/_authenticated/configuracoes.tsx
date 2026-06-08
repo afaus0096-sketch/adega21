@@ -1,16 +1,19 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Settings, ShieldAlert, KeyRound, CheckCircle2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Settings, ShieldAlert, KeyRound, CheckCircle2, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { hasBrokenPassword, setBrokenPassword } from "@/lib/caixa.functions";
+import { resetarDados } from "@/lib/reset.functions";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: ConfiguracoesPage,
@@ -20,8 +23,11 @@ function ConfiguracoesPage() {
   const { role } = useAuth();
   if (role !== "admin") return <Navigate to="/dashboard" replace />;
 
+  const qc = useQueryClient();
   const hasFn = useServerFn(hasBrokenPassword);
   const setFn = useServerFn(setBrokenPassword);
+  const resetFn = useServerFn(resetarDados);
+
   const { data, refetch } = useQuery({
     queryKey: ["broken-password-exists"],
     queryFn: () => hasFn() as Promise<{ exists: boolean }>,
@@ -40,8 +46,27 @@ function ConfiguracoesPage() {
     onError: (e: any) => toast.error(e?.message ?? "Erro"),
   });
 
-  const podeSalvar =
-    pwd.length >= 4 && pwd === confirm && !mut.isPending;
+  const podeSalvar = pwd.length >= 4 && pwd === confirm && !mut.isPending;
+
+  // ===== Zerar dados =====
+  const [openReset, setOpenReset] = useState(false);
+  const [opts, setOpts] = useState({ vendas: false, produtos: false, estoque: false, funcionarios: false });
+  const [confirmTxt, setConfirmTxt] = useState("");
+
+  const resetMut = useMutation({
+    mutationFn: () => resetFn({ data: { ...opts, confirmacao: "ZERAR" as const } }),
+    onSuccess: () => {
+      toast.success("Dados zerados com sucesso.");
+      setOpenReset(false);
+      setOpts({ vendas: false, produtos: false, estoque: false, funcionarios: false });
+      setConfirmTxt("");
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Erro ao zerar"),
+  });
+
+  const algoSelecionado = opts.vendas || opts.produtos || opts.estoque || opts.funcionarios;
+  const podeZerar = algoSelecionado && confirmTxt === "ZERAR" && !resetMut.isPending;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -94,6 +119,76 @@ function ConfiguracoesPage() {
           </Button>
         </CardContent>
       </Card>
+
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="w-5 h-5" /> Zona de perigo — Zerar dados
+          </CardTitle>
+          <CardDescription>
+            Apaga permanentemente os dados selecionados. Esta ação é irreversível.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="destructive" onClick={() => setOpenReset(true)}>
+            <Trash2 className="w-4 h-4 mr-2" /> Zerar dados…
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Dialog open={openReset} onOpenChange={(o) => { setOpenReset(o); if (!o) { setConfirmTxt(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" /> Zerar dados
+            </DialogTitle>
+            <DialogDescription>
+              Selecione o que deseja apagar. Esta operação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="flex items-start gap-3 p-2 rounded hover:bg-muted/40">
+              <Checkbox checked={opts.vendas} onCheckedChange={(v) => setOpts({ ...opts, vendas: !!v })} />
+              <div>
+                <div className="font-medium text-sm">Vendas</div>
+                <div className="text-xs text-muted-foreground">Vendas, comandas, caixas e fluxo financeiro.</div>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 p-2 rounded hover:bg-muted/40">
+              <Checkbox checked={opts.estoque} onCheckedChange={(v) => setOpts({ ...opts, estoque: !!v })} />
+              <div>
+                <div className="font-medium text-sm">Estoque</div>
+                <div className="text-xs text-muted-foreground">Movimentações e zera o estoque dos produtos.</div>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 p-2 rounded hover:bg-muted/40">
+              <Checkbox checked={opts.produtos} onCheckedChange={(v) => setOpts({ ...opts, produtos: !!v })} />
+              <div>
+                <div className="font-medium text-sm">Produtos</div>
+                <div className="text-xs text-muted-foreground">Remove todos os produtos cadastrados (também limpa vendas e movimentações vinculadas).</div>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 p-2 rounded hover:bg-muted/40">
+              <Checkbox checked={opts.funcionarios} onCheckedChange={(v) => setOpts({ ...opts, funcionarios: !!v })} />
+              <div>
+                <div className="font-medium text-sm">Funcionários</div>
+                <div className="text-xs text-muted-foreground">Remove todos os funcionários (seu acesso ADM é mantido).</div>
+              </div>
+            </label>
+
+            <div className="border-t pt-3 space-y-2">
+              <Label>Digite <strong className="text-destructive">ZERAR</strong> para confirmar</Label>
+              <Input value={confirmTxt} onChange={(e) => setConfirmTxt(e.target.value.toUpperCase())} placeholder="ZERAR" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpenReset(false)}>Cancelar</Button>
+            <Button variant="destructive" disabled={!podeZerar} onClick={() => resetMut.mutate()}>
+              {resetMut.isPending ? "Apagando…" : "Apagar selecionados"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
