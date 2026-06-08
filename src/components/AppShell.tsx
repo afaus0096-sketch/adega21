@@ -8,6 +8,7 @@ import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { HelpButton } from "@/components/HelpButton";
 
 const items = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, perm: "dashboard" },
@@ -100,6 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
         <main className="flex-1 p-4 lg:p-8 min-w-0">{children}</main>
       </div>
+      <HelpButton />
     </div>
   );
 }
