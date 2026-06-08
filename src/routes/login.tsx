@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+// after-login redirect handled below based on role
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/login")({ component: LoginPage });
 const FUNC_DOMAIN = "funcionarios.adega.local";
 
 function LoginPage() {
-  const { user, signIn, loading } = useAuth();
+  const { user, signIn, loading, role } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState("adm");
 
@@ -38,8 +39,10 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/dashboard", replace: true });
-  }, [user, loading, navigate]);
+    if (!loading && user) {
+      navigate({ to: role === "super_admin" ? "/accounts" : "/dashboard", replace: true });
+    }
+  }, [user, loading, role, navigate]);
 
   useEffect(() => {
     if (!adegaSlug && adegas[0]) setAdegaSlug(adegas[0].slug);
