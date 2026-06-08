@@ -85,7 +85,9 @@ export const toggleAdega = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Cria uma "Account" (ADM dono de uma adega) — login por email/senha.
+// Cria uma "Account" (ADM dono de uma adega) — login por usuário + PIN de 6 dígitos.
+const FUNC_DOMAIN = "funcionarios.adega.local";
+
 export const createAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -93,8 +95,14 @@ export const createAccount = createServerFn({ method: "POST" })
       .object({
         adega_id: z.string().uuid(),
         nome: z.string().trim().min(2).max(80),
-        email: z.string().email(),
-        password: z.string().min(6).max(72),
+        username: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .min(2)
+          .max(40)
+          .regex(/^[a-z0-9_.-]+$/, "Use letras minúsculas, números, ponto, hífen ou _"),
+        pin: z.string().regex(/^\d{6}$/, "PIN deve ter 6 dígitos"),
       })
       .parse(input),
   )
@@ -103,11 +111,23 @@ export const createAccount = createServerFn({ method: "POST" })
     await assertSuper(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const { data: adega, error: aErr } = await supabaseAdmin
+      .from("adegas")
+      .select("id, slug")
+      .eq("id", data.adega_id)
+      .maybeSingle();
+    if (aErr || !adega) throw new Error("Adega não encontrada.");
+
+    const email =
+      adega.slug === "principal"
+        ? `${data.username}@${FUNC_DOMAIN}`
+        : `${adega.slug}.${data.username}@${FUNC_DOMAIN}`;
+
     const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
+      email,
+      password: data.pin,
       email_confirm: true,
-      user_metadata: { nome: data.nome, adega_id: data.adega_id },
+      user_metadata: { nome: data.nome, adega_id: data.adega_id, username: data.username },
     });
     if (cErr || !created.user) throw new Error(cErr?.message ?? "Falha ao criar usuário");
 
@@ -123,7 +143,7 @@ export const createAccount = createServerFn({ method: "POST" })
       .update({ adega_id: data.adega_id, nome: data.nome })
       .eq("id", newUserId);
 
-    return { id: newUserId, email: data.email };
+    return { id: newUserId, email };
   });
 
 export const listAccounts = createServerFn({ method: "GET" })
