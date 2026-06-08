@@ -14,7 +14,10 @@ function Layout() {
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login", replace: true });
-  }, [user, loading, navigate]);
+    if (!loading && user && role === "super_admin" && !location.pathname.startsWith("/accounts")) {
+      navigate({ to: "/accounts", replace: true });
+    }
+  }, [user, loading, role, location.pathname, navigate]);
 
   if (loading || !user) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando…</div>;
