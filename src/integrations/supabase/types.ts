@@ -360,6 +360,7 @@ export type Database = {
         Row: {
           adega_id: string
           ativo: boolean
+          cargo: string
           created_at: string
           created_by: string | null
           id: string
@@ -371,6 +372,7 @@ export type Database = {
         Insert: {
           adega_id?: string
           ativo?: boolean
+          cargo?: string
           created_at?: string
           created_by?: string | null
           id: string
@@ -382,6 +384,7 @@ export type Database = {
         Update: {
           adega_id?: string
           ativo?: boolean
+          cargo?: string
           created_at?: string
           created_by?: string | null
           id?: string
