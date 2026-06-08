@@ -16,12 +16,17 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   listFuncionarios, createFuncionario, resetFuncionarioPin,
   setFuncionarioAtivo, deleteFuncionario, setFuncionarioPermissoes,
 } from "@/lib/funcionarios.functions";
 import { PERMISSOES_DISPONIVEIS, PERMISSOES_PADRAO } from "@/lib/permissions";
+
+type Cargo = "dono" | "gerente" | "caixa";
+const CARGO_LABEL: Record<Cargo, string> = { dono: "Dono", gerente: "Gerente", caixa: "Caixa" };
+const TODAS_PERMS = PERMISSOES_DISPONIVEIS.map((p) => p.id);
 
 export const Route = createFileRoute("/_authenticated/funcionarios-admin")({
   component: FuncionariosAdminPage,
@@ -33,6 +38,7 @@ type Funcionario = {
   username: string;
   ativo: boolean;
   permissoes: string[] | null;
+  cargo: Cargo;
   created_at: string;
 };
 
@@ -62,7 +68,11 @@ function FuncionariosAdminPage() {
   const [nome, setNome] = useState("");
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
+  const [cargo, setCargo] = useState<Cargo>("caixa");
   const [novaPerms, setNovaPerms] = useState<string[]>(PERMISSOES_PADRAO as unknown as string[]);
+
+  // Cargo gerencial → todas as permissões automaticamente
+  const cargoEhGerencial = cargo === "dono" || cargo === "gerente";
 
   const [resetTarget, setResetTarget] = useState<Funcionario | null>(null);
   const [newPin, setNewPin] = useState("");
