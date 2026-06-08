@@ -2,16 +2,12 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
-type Role = "admin" | "caixa" | "super_admin";
-
-interface Adega { id: string; nome: string; slug: string }
+type Role = "admin" | "caixa";
 
 interface AuthCtx {
   user: User | null;
   session: Session | null;
   role: Role | null;
-  isSuperAdmin: boolean;
-  adega: Adega | null;
   permissoes: string[] | null; // null = admin (acesso total)
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
@@ -25,42 +21,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [adega, setAdega] = useState<Adega | null>(null);
   const [permissoes, setPermissoes] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadProfile = (uid: string) => {
     setTimeout(async () => {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role, adega_id");
-      const list = (roles ?? []) as { role: Role; adega_id: string | null }[];
-      const superA = list.some((r) => r.role === "super_admin");
-      setIsSuperAdmin(superA);
-
-      // Role principal (na adega)
-      const tenantRole = list.find((r) => r.role === "admin" || r.role === "caixa");
-      const r: Role | null = superA
-        ? "super_admin"
-        : tenantRole?.role ?? null;
+      const { data: roles } = await supabase.from("user_roles").select("role");
+      const list = (roles ?? []) as { role: Role }[];
+      const r: Role | null =
+        list.find((x) => x.role === "admin")?.role ??
+        list.find((x) => x.role === "caixa")?.role ??
+        null;
       setRole(r);
 
-      // Carrega adega
-      const adegaId = tenantRole?.adega_id ?? null;
-      if (adegaId) {
-        const { data: a } = await supabase
-          .from("adegas")
-          .select("id, nome, slug")
-          .eq("id", adegaId)
-          .maybeSingle();
-        setAdega(a ?? null);
-      } else {
-        setAdega(null);
-      }
-
-      // Permissões
-      if (r === "admin" || r === "super_admin") {
+      if (r === "admin") {
         setPermissoes(null);
       } else if (r === "caixa") {
         const { data: f } = await supabase
@@ -80,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) loadProfile(s.user.id);
-      else { setRole(null); setIsSuperAdmin(false); setAdega(null); setPermissoes(null); }
+      else { setRole(null); setPermissoes(null); }
     });
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
@@ -105,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => { await supabase.auth.signOut(); };
 
   return (
-    <Ctx.Provider value={{ user, session, role, isSuperAdmin, adega, permissoes, loading, signIn, signUp, signOut }}>
+    <Ctx.Provider value={{ user, session, role, permissoes, loading, signIn, signUp, signOut }}>
       {children}
     </Ctx.Provider>
   );
