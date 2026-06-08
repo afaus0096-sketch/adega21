@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ShoppingCart, Package, Boxes, Receipt,
   Truck, Wallet, LogOut, Wine, Menu, X, FileBarChart2, Users,
-  ReceiptText, Printer, CalendarClock, Settings,
+  ReceiptText, Printer, CalendarClock, Settings, Building2,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -24,6 +24,7 @@ const items = [
   { to: "/funcionarios-admin", label: "Funcionários", icon: Users, adminOnly: true },
   { to: "/impressoras", label: "Impressoras", icon: Printer, adminOnly: true },
   { to: "/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
+  { to: "/accounts", label: "Accounts", icon: Building2, superOnly: true },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -31,10 +32,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { location } = useRouterState();
   const [open, setOpen] = useState(false);
 
-  const visible = items.filter((i) => {
-    if ("adminOnly" in i && i.adminOnly) return role === "admin";
+  const visible = items.filter((i: any) => {
+    if (i.superOnly) return role === "super_admin";
+    if (role === "super_admin") return false; // super só vê Accounts
+    if (i.adminOnly) return role === "admin";
     if (role === "admin") return true;
-    return (permissoes ?? []).includes((i as any).perm);
+    return (permissoes ?? []).includes(i.perm);
   });
 
   return (
@@ -45,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}>
         <div className="p-5 border-b border-sidebar-border">
           <div className="flex items-center justify-between">
-            <Link to="/dashboard" className="flex items-center gap-2" onClick={() => setOpen(false)}>
+            <Link to={role === "super_admin" ? "/accounts" : "/dashboard"} className="flex items-center gap-2" onClick={() => setOpen(false)}>
               <Wine className="w-6 h-6 text-accent" />
               <span className="display text-lg font-bold text-sidebar-foreground">Adega PDV</span>
             </Link>
