@@ -148,27 +148,32 @@ function AccountsPanel() {
 
   const [adegaId, setAdegaId] = useState("");
   const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [pwd, setPwd] = useState("");
+  const [username, setUsername] = useState("");
+  const [pin, setPin] = useState("");
 
   const mut = useMutation({
-    mutationFn: () => createAcc({ data: { adega_id: adegaId, nome, email, password: pwd } }),
+    mutationFn: () => createAcc({ data: { adega_id: adegaId, nome, username, pin } }),
     onSuccess: () => {
       toast.success("Conta criada.");
-      setNome(""); setEmail(""); setPwd(""); setAdegaId("");
+      setNome(""); setUsername(""); setPin(""); setAdegaId("");
       qc.invalidateQueries({ queryKey: ["accounts-list"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Erro"),
   });
 
-  const podeCriar = adegaId && nome.length >= 2 && /.+@.+\..+/.test(email) && pwd.length >= 6 && !mut.isPending;
+  const podeCriar =
+    !!adegaId &&
+    nome.length >= 2 &&
+    /^[a-z0-9_.-]{2,40}$/.test(username) &&
+    /^\d{6}$/.test(pin) &&
+    !mut.isPending;
 
   return (
     <div className="grid lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg"><UserPlus className="w-5 h-5" /> Nova conta ADM</CardTitle>
-          <CardDescription>Cria um administrador (dono) para a adega selecionada.</CardDescription>
+          <CardDescription>Cria um administrador (dono) para a adega. Acesso por usuário + PIN de 6 dígitos.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
@@ -187,12 +192,25 @@ function AccountsPanel() {
             <Input value={nome} onChange={(e) => setNome(e.target.value)} />
           </div>
           <div>
-            <Label>Email</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Label>Usuário</Label>
+            <Input
+              value={username}
+              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))}
+              placeholder="admin"
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Letras minúsculas, números, ponto, hífen ou _.</p>
           </div>
           <div>
-            <Label>Senha (mín. 6)</Label>
-            <Input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} />
+            <Label>PIN (6 dígitos)</Label>
+            <Input
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="••••••"
+              className="text-center text-xl tracking-[0.5em] font-mono"
+            />
           </div>
           <Button onClick={() => mut.mutate()} disabled={!podeCriar}>
             {mut.isPending ? "Criando…" : "Criar conta"}
