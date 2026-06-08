@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ShoppingCart, Package, Boxes, Receipt,
   Truck, Wallet, LogOut, Wine, Menu, X, FileBarChart2, Users,
-  ReceiptText, Printer, CalendarClock, Settings, Building2,
+  ReceiptText, Printer, CalendarClock, Settings,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -20,23 +20,18 @@ const items = [
   { to: "/fornecedores", label: "Fornecedores", icon: Truck, perm: "fornecedores" },
   { to: "/financeiro", label: "Financeiro", icon: Wallet, perm: "financeiro" },
   { to: "/fechamento", label: "Fechamento", icon: FileBarChart2, perm: "fechamento" },
-  // admin-only
   { to: "/funcionarios-admin", label: "Funcionários", icon: Users, adminOnly: true },
   { to: "/impressoras", label: "Impressoras", icon: Printer, adminOnly: true },
   { to: "/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
-  // super-admin only
-  { to: "/super-admin", label: "Adegas (Super)", icon: Building2, superOnly: true },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { signOut, role, user, permissoes, adega, isSuperAdmin } = useAuth();
+  const { signOut, role, user, permissoes } = useAuth();
   const { location } = useRouterState();
   const [open, setOpen] = useState(false);
 
   const visible = items.filter((i) => {
-    if ("superOnly" in i && i.superOnly) return isSuperAdmin;
-    if ("adminOnly" in i && i.adminOnly) return role === "admin" || isSuperAdmin;
-    if (isSuperAdmin) return true;
+    if ("adminOnly" in i && i.adminOnly) return role === "admin";
     if (role === "admin") return true;
     return (permissoes ?? []).includes((i as any).perm);
   });
@@ -57,11 +52,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               <X className="w-5 h-5" />
             </button>
           </div>
-          {(adega || isSuperAdmin) && (
-            <div className="mt-2 text-xs text-muted-foreground truncate">
-              {isSuperAdmin && !adega ? "🛡️ Super Admin" : `📍 ${adega?.nome}`}
-            </div>
-          )}
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
