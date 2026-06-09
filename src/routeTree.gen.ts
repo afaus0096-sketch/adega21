@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedVipsRouteImport } from './routes/_authenticated/vips'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedPdvRouteImport } from './routes/_authenticated/pdv'
@@ -40,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedVipsRoute = AuthenticatedVipsRouteImport.update({
+  id: '/vips',
+  path: '/vips',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
   id: '/vendas',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/pdv': typeof AuthenticatedPdvRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/vendas': typeof AuthenticatedVendasRoute
+  '/vips': typeof AuthenticatedVipsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/pdv': typeof AuthenticatedPdvRoute
   '/produtos': typeof AuthenticatedProdutosRoute
   '/vendas': typeof AuthenticatedVendasRoute
+  '/vips': typeof AuthenticatedVipsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -171,6 +179,7 @@ export interface FileRoutesById {
   '/_authenticated/pdv': typeof AuthenticatedPdvRoute
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
+  '/_authenticated/vips': typeof AuthenticatedVipsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/produtos'
     | '/vendas'
+    | '/vips'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/produtos'
     | '/vendas'
+    | '/vips'
   id:
     | '__root__'
     | '/'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pdv'
     | '/_authenticated/produtos'
     | '/_authenticated/vendas'
+    | '/_authenticated/vips'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -258,6 +270,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/vips': {
+      id: '/_authenticated/vips'
+      path: '/vips'
+      fullPath: '/vips'
+      preLoaderRoute: typeof AuthenticatedVipsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/vendas': {
       id: '/_authenticated/vendas'
@@ -375,6 +394,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPdvRoute: typeof AuthenticatedPdvRoute
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
+  AuthenticatedVipsRoute: typeof AuthenticatedVipsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -392,6 +412,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPdvRoute: AuthenticatedPdvRoute,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
+  AuthenticatedVipsRoute: AuthenticatedVipsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ShoppingCart, Package, Boxes, Receipt,
   Truck, Wallet, LogOut, Wine, Menu, X, FileBarChart2, Users,
-  ReceiptText, Printer, CalendarClock, Settings, Building2,
+  ReceiptText, Printer, CalendarClock, Settings, Building2, Crown,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
@@ -21,6 +21,7 @@ const items = [
   { to: "/fornecedores", label: "Fornecedores", icon: Truck, perm: "fornecedores" },
   { to: "/financeiro", label: "Financeiro", icon: Wallet, perm: "financeiro" },
   { to: "/fechamento", label: "Fechamento", icon: FileBarChart2, perm: "fechamento" },
+  { to: "/vips", label: "VIPs", icon: Crown, adminOnly: true },
   { to: "/funcionarios-admin", label: "Funcionários", icon: Users, adminOnly: true },
   { to: "/impressoras", label: "Impressoras", icon: Printer, adminOnly: true },
   { to: "/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },

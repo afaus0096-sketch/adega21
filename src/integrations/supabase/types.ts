@@ -738,6 +738,65 @@ export type Database = {
           },
         ]
       }
+      vips: {
+        Row: {
+          adega_id: string
+          ativo: boolean
+          created_at: string
+          credito: number
+          fiado_atual: number
+          id: string
+          limite_fiado: number
+          nome: string
+          observacoes: string | null
+          rosh_credito: number
+          rosh_fiado_atual: number
+          rosh_fiado_limite: number
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          adega_id: string
+          ativo?: boolean
+          created_at?: string
+          credito?: number
+          fiado_atual?: number
+          id?: string
+          limite_fiado?: number
+          nome: string
+          observacoes?: string | null
+          rosh_credito?: number
+          rosh_fiado_atual?: number
+          rosh_fiado_limite?: number
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adega_id?: string
+          ativo?: boolean
+          created_at?: string
+          credito?: number
+          fiado_atual?: number
+          id?: string
+          limite_fiado?: number
+          nome?: string
+          observacoes?: string | null
+          rosh_credito?: number
+          rosh_fiado_atual?: number
+          rosh_fiado_limite?: number
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vips_adega_id_fkey"
+            columns: ["adega_id"]
+            isOneToOne: false
+            referencedRelation: "adegas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
