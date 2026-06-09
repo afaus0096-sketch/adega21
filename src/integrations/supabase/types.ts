@@ -459,7 +459,7 @@ export type Database = {
           adega_id: string
           id: string
           preco_unitario: number
-          produto_id: string
+          produto_id: string | null
           produto_nome: string
           quantidade: number
           subtotal: number
@@ -469,7 +469,7 @@ export type Database = {
           adega_id?: string
           id?: string
           preco_unitario: number
-          produto_id: string
+          produto_id?: string | null
           produto_nome: string
           quantidade: number
           subtotal: number
@@ -479,7 +479,7 @@ export type Database = {
           adega_id?: string
           id?: string
           preco_unitario?: number
-          produto_id?: string
+          produto_id?: string | null
           produto_nome?: string
           quantidade?: number
           subtotal?: number

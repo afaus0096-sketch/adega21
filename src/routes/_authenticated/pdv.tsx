@@ -10,14 +10,20 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { brl } from "@/lib/format";
-import { ShoppingCart, Trash2, Plus, Minus, ScanLine, Search, Printer } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, ScanLine, Search, Printer, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { imprimirCupom } from "@/lib/cupom";
 
 export const Route = createFileRoute("/_authenticated/pdv")({ component: PDV });
 
 type Produto = { id: string; codigo_interno: string; codigo_barras: string | null; nome: string; preco_venda: number; estoque: number };
-type Item = { produto: Produto; qtd: number };
+type Item = {
+  key: string;
+  produto: Produto | null; // null = avulso
+  nome: string;
+  preco: number;
+  qtd: number;
+};
 
 function PDV() {
   const { user } = useAuth();
@@ -26,6 +32,10 @@ function PDV() {
   const [itens, setItens] = useState<Item[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [avulsoOpen, setAvulsoOpen] = useState(false);
+  const [avulsoNome, setAvulsoNome] = useState("");
+  const [avulsoPreco, setAvulsoPreco] = useState("");
+  const [avulsoQtd, setAvulsoQtd] = useState("1");
   const [forma, setForma] = useState<"dinheiro"|"pix"|"debito"|"credito">("dinheiro");
   const [recebido, setRecebido] = useState("");
   const [finalizing, setFinalizing] = useState(false);
@@ -42,15 +52,29 @@ function PDV() {
     },
   });
 
-  const total = useMemo(() => itens.reduce((a, i) => a + i.qtd * Number(i.produto.preco_venda), 0), [itens]);
+  const total = useMemo(() => itens.reduce((a, i) => a + i.qtd * i.preco, 0), [itens]);
   const troco = Math.max(0, (Number(recebido) || 0) - total);
 
   const addProduto = (p: Produto) => {
     setItens((prev) => {
-      const i = prev.findIndex((x) => x.produto.id === p.id);
+      const i = prev.findIndex((x) => x.produto?.id === p.id);
       if (i >= 0) { const c = [...prev]; c[i] = { ...c[i], qtd: c[i].qtd + 1 }; return c; }
-      return [...prev, { produto: p, qtd: 1 }];
+      return [...prev, { key: p.id, produto: p, nome: p.nome, preco: Number(p.preco_venda), qtd: 1 }];
     });
+  };
+
+  const addAvulso = () => {
+    const preco = Number(avulsoPreco);
+    const qtd = Number(avulsoQtd);
+    if (!preco || preco <= 0) { toast.error("Informe um valor"); return; }
+    if (!qtd || qtd <= 0) { toast.error("Quantidade inválida"); return; }
+    const nome = avulsoNome.trim() || "Item avulso";
+    setItens((prev) => [
+      ...prev,
+      { key: `avulso-${Date.now()}-${Math.random()}`, produto: null, nome, preco, qtd },
+    ]);
+    setAvulsoNome(""); setAvulsoPreco(""); setAvulsoQtd("1"); setAvulsoOpen(false);
+    codeRef.current?.focus();
   };
 
   const onScan = (e: React.FormEvent) => {
@@ -65,10 +89,10 @@ function PDV() {
     codeRef.current?.focus();
   };
 
-  const updateQtd = (id: string, d: number) => {
-    setItens((prev) => prev.map((i) => i.produto.id === id ? { ...i, qtd: Math.max(1, i.qtd + d) } : i));
+  const updateQtd = (key: string, d: number) => {
+    setItens((prev) => prev.map((i) => i.key === key ? { ...i, qtd: Math.max(1, i.qtd + d) } : i));
   };
-  const removeItem = (id: string) => setItens((prev) => prev.filter((i) => i.produto.id !== id));
+  const removeItem = (key: string) => setItens((prev) => prev.filter((i) => i.key !== key));
 
   const finalizar = async () => {
     if (!user || itens.length === 0) return;
@@ -83,10 +107,14 @@ function PDV() {
       if (e1) throw e1;
 
       const payload = itens.map((i) => ({
-        venda_id: venda.id, produto_id: i.produto.id, produto_nome: i.produto.nome,
-        quantidade: i.qtd, preco_unitario: Number(i.produto.preco_venda), subtotal: i.qtd * Number(i.produto.preco_venda),
+        venda_id: venda.id,
+        produto_id: i.produto?.id ?? null,
+        produto_nome: i.nome,
+        quantidade: i.qtd,
+        preco_unitario: i.preco,
+        subtotal: i.qtd * i.preco,
       }));
-      const { error: e2 } = await supabase.from("itens_venda").insert(payload);
+      const { error: e2 } = await supabase.from("itens_venda").insert(payload as any);
       if (e2) throw e2;
 
       toast.success(`Venda #${venda.numero} concluída — ${brl(total)}`, {
@@ -97,10 +125,10 @@ function PDV() {
               titulo: "VENDA",
               numero: venda.numero,
               itens: itens.map((i) => ({
-                nome: i.produto.nome,
+                nome: i.nome,
                 qtd: i.qtd,
-                preco: Number(i.produto.preco_venda),
-                subtotal: i.qtd * Number(i.produto.preco_venda),
+                preco: i.preco,
+                subtotal: i.qtd * i.preco,
               })),
               total,
               forma_pagamento: forma,
@@ -127,7 +155,7 @@ function PDV() {
           <CardHeader className="pb-3">
             <CardTitle className="display flex items-center gap-2"><ScanLine className="w-5 h-5 text-accent" /> Frente de Caixa</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <form onSubmit={onScan} className="flex gap-2">
               <Input
                 ref={codeRef}
@@ -142,6 +170,9 @@ function PDV() {
                 <Search className="w-4 h-4" />
               </Button>
             </form>
+            <Button type="button" variant="outline" className="w-full" onClick={() => setAvulsoOpen(true)}>
+              <Coins className="w-4 h-4 mr-2" /> Adicionar valor avulso
+            </Button>
           </CardContent>
         </Card>
 
@@ -155,18 +186,21 @@ function PDV() {
             ) : (
               <ul className="divide-y divide-border">
                 {itens.map((i) => (
-                  <li key={i.produto.id} className="p-4 flex items-center gap-3">
+                  <li key={i.key} className="p-4 flex items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{i.produto.nome}</p>
-                      <p className="text-xs text-muted-foreground">{brl(Number(i.produto.preco_venda))} cada</p>
+                      <p className="font-medium truncate">
+                        {i.nome}
+                        {!i.produto && <span className="ml-2 text-[10px] uppercase tracking-wide text-accent">avulso</span>}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{brl(i.preco)} cada</p>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQtd(i.produto.id, -1)}><Minus className="w-3 h-3" /></Button>
+                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQtd(i.key, -1)}><Minus className="w-3 h-3" /></Button>
                       <span className="w-10 text-center font-mono font-semibold">{i.qtd}</span>
-                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQtd(i.produto.id, 1)}><Plus className="w-3 h-3" /></Button>
+                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQtd(i.key, 1)}><Plus className="w-3 h-3" /></Button>
                     </div>
-                    <div className="w-24 text-right font-semibold">{brl(i.qtd * Number(i.produto.preco_venda))}</div>
-                    <Button size="icon" variant="ghost" onClick={() => removeItem(i.produto.id)} className="h-8 w-8 text-destructive hover:text-destructive">
+                    <div className="w-24 text-right font-semibold">{brl(i.qtd * i.preco)}</div>
+                    <Button size="icon" variant="ghost" onClick={() => removeItem(i.key)} className="h-8 w-8 text-destructive hover:text-destructive">
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </li>
@@ -213,6 +247,33 @@ function PDV() {
               </button>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Avulso */}
+      <Dialog open={avulsoOpen} onOpenChange={setAvulsoOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="display">Valor avulso</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Descrição (opcional)</Label>
+              <Input value={avulsoNome} onChange={(e) => setAvulsoNome(e.target.value)} placeholder="Ex.: Serviço, Consumo no local…" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Valor unitário (R$) *</Label>
+                <Input type="number" step="0.01" min="0" value={avulsoPreco} onChange={(e) => setAvulsoPreco(e.target.value)} autoFocus className="text-xl h-12" />
+              </div>
+              <div>
+                <Label>Quantidade</Label>
+                <Input type="number" step="1" min="1" value={avulsoQtd} onChange={(e) => setAvulsoQtd(e.target.value)} className="text-xl h-12" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAvulsoOpen(false)}>Cancelar</Button>
+            <Button onClick={addAvulso}>Adicionar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
