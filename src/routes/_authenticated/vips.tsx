@@ -95,8 +95,8 @@ function VipsPage() {
       ativo: form.ativo,
     };
     const r = editing
-      ? await supabase.from("vips").update(payload).eq("id", editing.id)
-      : await supabase.from("vips").insert(payload);
+      ? await supabase.from("vips").update(payload as any).eq("id", editing.id)
+      : await supabase.from("vips").insert(payload as any);
     if (r.error) toast.error(r.error.message);
     else {
       toast.success("Salvo");
