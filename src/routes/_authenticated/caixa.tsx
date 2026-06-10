@@ -87,7 +87,7 @@ function CaixaPage() {
 
   const fecharMut = useMutation({
     mutationFn: () =>
-      fecharFn({ data: { id: status!.caixaDeHoje!.id, observacao: obs || undefined } }),
+      fecharFn({ data: { id: status!.aberto!.id, observacao: obs || undefined } }),
     onSuccess: (r: any) => {
       toast.success(
         `Caixa fechado. ${r.qtd} venda(s), total ${brl(Number(r.total))}.`,
