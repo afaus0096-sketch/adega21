@@ -137,12 +137,19 @@ function CaixaPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {caixaHoje ? (
+          {aberto ? (
             <div className="grid sm:grid-cols-3 gap-3">
-              <Info label="Aberto por" value={caixaHoje.opened_by_nome} />
+              <Info label="Aberto por" value={aberto.opened_by_nome} />
               <Info label="Aberto às"
-                value={new Date(caixaHoje.opened_at).toLocaleString("pt-BR")} />
-              <Info label="Status" value={<Badge>Aberto</Badge>} />
+                value={new Date(aberto.opened_at).toLocaleString("pt-BR")} />
+              <Info
+                label="Status"
+                value={
+                  caixaHoje
+                    ? <Badge>Aberto (hoje)</Badge>
+                    : <Badge variant="destructive">Aberto — dia {aberto.data_dia}</Badge>
+                }
+              />
             </div>
           ) : (
             <p className="text-muted-foreground text-sm">
@@ -151,12 +158,12 @@ function CaixaPage() {
           )}
 
           <div className="flex gap-2 pt-2">
-            {!caixaHoje && (
+            {!aberto && (
               <Button onClick={() => setOpenAbrir(true)}>
                 <Unlock className="w-4 h-4 mr-2" /> Abrir caixa
               </Button>
             )}
-            {caixaHoje && (
+            {aberto && (
               <Button variant="destructive" onClick={() => setOpenFechar(true)}>
                 <Lock className="w-4 h-4 mr-2" /> Finalizar caixa
               </Button>
