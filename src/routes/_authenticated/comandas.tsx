@@ -618,10 +618,22 @@ function DetalheComandaDialog({
             <Printer className="w-4 h-4 mr-1" /> Imprimir
           </Button>
           {aberta ? (
-            <Button onClick={fecharComanda} disabled={fechando}>
-              <CheckCircle2 className="w-4 h-4 mr-1" />
-              {fechando ? "Fechando…" : "Fechar conta (pagar)"}
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  toast.success("Comanda salva — continua em aberto.");
+                  onChanged();
+                  onClose();
+                }}
+              >
+                OK / Salvar
+              </Button>
+              <Button onClick={fecharComanda} disabled={fechando}>
+                <CheckCircle2 className="w-4 h-4 mr-1" />
+                {fechando ? "Fechando…" : "Fechar conta (pagar)"}
+              </Button>
+            </>
           ) : (
             <Button onClick={onClose}>Fechar</Button>
           )}
